@@ -68,24 +68,36 @@ export default function MenuItemsPage() {
         />
 
         {categoryOpen && (
-          <div className="rounded-[18px] border border-neutral-200 bg-white p-3 shadow-sm sm:p-5">
-            <CategoryPanel
-              categories={menu.categories}
-              itemCountByCategory={menu.itemCountByCategory}
-              newCategoryName={menu.newCategoryName}
-              setNewCategoryName={menu.setNewCategoryName}
-              categorySubmitting={menu.categorySubmitting}
-              editingCategoryId={menu.editingCategoryId}
-              editingCategoryName={menu.editingCategoryName}
-              setEditingCategoryName={menu.setEditingCategoryName}
-              onCreateCategory={menu.handleCreateCategory}
-              onStartEdit={menu.startEditCategory}
-              onCancelEdit={menu.cancelEditCategory}
-              onUpdateCategory={menu.handleUpdateCategory}
-              onToggleCategory={menu.handleToggleCategory}
-              onDeleteCategory={menu.handleDeleteCategory}
-            />
-          </div>
+          <section className="overflow-hidden rounded-[16px] border border-neutral-200 bg-white shadow-sm">
+            <div className="border-b border-neutral-200 px-3 py-3 sm:px-4">
+              <p className="text-sm font-black text-neutral-950">
+                Quản lý danh mục
+              </p>
+
+              <p className="mt-1 text-xs font-medium text-neutral-500">
+                Thêm, sửa, ẩn hoặc hiện danh mục sản phẩm.
+              </p>
+            </div>
+
+            <div className="p-3 sm:p-4">
+              <CategoryPanel
+                categories={menu.categories}
+                itemCountByCategory={menu.itemCountByCategory}
+                newCategoryName={menu.newCategoryName}
+                setNewCategoryName={menu.setNewCategoryName}
+                categorySubmitting={menu.categorySubmitting}
+                editingCategoryId={menu.editingCategoryId}
+                editingCategoryName={menu.editingCategoryName}
+                setEditingCategoryName={menu.setEditingCategoryName}
+                onCreateCategory={menu.handleCreateCategory}
+                onStartEdit={menu.startEditCategory}
+                onCancelEdit={menu.cancelEditCategory}
+                onUpdateCategory={menu.handleUpdateCategory}
+                onToggleCategory={menu.handleToggleCategory}
+                onDeleteCategory={menu.handleDeleteCategory}
+              />
+            </div>
+          </section>
         )}
 
         <MenuListPanel
@@ -144,20 +156,20 @@ function TopActionBar({
   onToggleCategory,
 }) {
   return (
-    <section className="overflow-hidden rounded-[18px] border border-neutral-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 lg:p-5">
+    <section className="overflow-hidden rounded-[16px] border border-neutral-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7CAEB8]">
             Product manager
           </p>
 
-          <h2 className="mt-1 text-xl font-black tracking-tight text-neutral-950 sm:text-2xl">
+          <h2 className="mt-1 text-lg font-black tracking-tight text-neutral-950 sm:text-xl">
             Sản phẩm đã tạo
           </h2>
 
           <p className="mt-1 text-sm font-medium leading-6 text-neutral-500">
             Quản lý {total || 0} sản phẩm, tìm kiếm, lọc, phân trang và kéo thả
-            sắp xếp thứ tự hiển thị.
+            sắp xếp.
           </p>
         </div>
 
@@ -166,22 +178,22 @@ function TopActionBar({
             type="button"
             onClick={onToggleCategory}
             className={[
-              "inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border px-4 text-sm font-black transition",
+              "inline-flex h-10 items-center justify-center gap-2 rounded-[10px] border px-4 text-sm font-black transition",
               categoryOpen
                 ? "border-neutral-950 bg-neutral-950 text-white"
                 : "border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50",
             ].join(" ")}
           >
-            <FolderTree size={17} />
+            <FolderTree size={16} />
             Danh mục
           </button>
 
           <button
             type="button"
             onClick={onOpenCreateForm}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] bg-neutral-950 px-4 text-sm font-black text-white shadow-sm transition hover:bg-neutral-800"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-neutral-950 px-4 text-sm font-black text-white shadow-sm transition hover:bg-neutral-800"
           >
-            <PlusCircle size={18} />
+            <PlusCircle size={17} />
             Thêm sản phẩm
           </button>
         </div>
@@ -220,7 +232,9 @@ function ProductFormModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 px-0 py-0 backdrop-blur-sm sm:items-center sm:p-4 lg:p-6">
+    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/45 px-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <CompactProductFormStyle />
+
       <button
         type="button"
         onClick={onClose}
@@ -229,14 +243,14 @@ function ProductFormModal({
         aria-label="Đóng form sản phẩm"
       />
 
-      <div className="relative z-10 flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-[20px] bg-[#F6F7F9] shadow-2xl sm:max-w-5xl sm:rounded-[18px] xl:max-w-6xl">
-        <div className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3 sm:px-5">
+      <div className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[18px] bg-[#F6F7F9] shadow-2xl sm:max-h-[88vh] sm:max-w-[820px] sm:rounded-[16px]">
+        <div className="flex min-h-[54px] items-center justify-between gap-3 border-b border-neutral-200 bg-white px-3 py-2 sm:px-4">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#7CAEB8]">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#7CAEB8]">
               {editingItemId ? "Edit product" : "New product"}
             </p>
 
-            <h2 className="truncate text-lg font-black text-neutral-950 sm:text-xl">
+            <h2 className="truncate text-base font-black text-neutral-950 sm:text-lg">
               {editingItemId ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
             </h2>
           </div>
@@ -245,17 +259,138 @@ function ProductFormModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-neutral-100 text-neutral-700 transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] bg-neutral-100 text-neutral-700 transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Đóng popup"
           >
-            <X size={19} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 lg:p-5">
-          {children}
+        <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
+          <div className="compact-product-form mx-auto w-full max-w-[720px]">
+            {children}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function CompactProductFormStyle() {
+  return (
+    <style>
+      {`
+        .compact-product-form > section {
+          border-radius: 14px !important;
+          box-shadow: none !important;
+        }
+
+        .compact-product-form section > div:first-child {
+          padding: 12px 14px !important;
+        }
+
+        .compact-product-form section > div:first-child h2 {
+          font-size: 18px !important;
+          line-height: 24px !important;
+        }
+
+        .compact-product-form section > div:first-child p {
+          font-size: 12px !important;
+          line-height: 18px !important;
+        }
+
+        .compact-product-form form {
+          padding: 12px !important;
+        }
+
+        .compact-product-form form > * + * {
+          margin-top: 12px !important;
+        }
+
+        .compact-product-form form section,
+        .compact-product-form form > div {
+          border-radius: 12px !important;
+        }
+
+        .compact-product-form input,
+        .compact-product-form select {
+          height: 42px !important;
+          font-size: 13px !important;
+          border-radius: 9px !important;
+        }
+
+        .compact-product-form textarea {
+          min-height: 84px !important;
+          max-height: 120px !important;
+          font-size: 13px !important;
+          border-radius: 9px !important;
+        }
+
+        .compact-product-form label {
+          font-size: 12px !important;
+        }
+
+        .compact-product-form .aspect-square {
+          aspect-ratio: 16 / 9 !important;
+          max-height: 150px !important;
+          min-height: 110px !important;
+        }
+
+        .compact-product-form .aspect-\\[16\\/10\\] {
+          aspect-ratio: 16 / 8 !important;
+          max-height: 150px !important;
+          min-height: 110px !important;
+        }
+
+        .compact-product-form img,
+        .compact-product-form video {
+          max-height: 145px !important;
+          object-fit: contain !important;
+        }
+
+        .compact-product-form [class*="min-h-\\[150px\\]"],
+        .compact-product-form [class*="min-h-\\[170px\\]"],
+        .compact-product-form [class*="min-h-\\[190px\\]"] {
+          min-height: 116px !important;
+        }
+
+        .compact-product-form [class*="h-52"] {
+          height: 120px !important;
+        }
+
+        .compact-product-form button[type="submit"] {
+          min-height: 42px !important;
+          padding-top: 10px !important;
+          padding-bottom: 10px !important;
+          border-radius: 10px !important;
+          font-size: 12px !important;
+        }
+
+        @media (max-width: 640px) {
+          .compact-product-form {
+            max-width: 100% !important;
+          }
+
+          .compact-product-form .aspect-square,
+          .compact-product-form .aspect-\\[16\\/10\\] {
+            max-height: 130px !important;
+            min-height: 96px !important;
+          }
+
+          .compact-product-form img,
+          .compact-product-form video {
+            max-height: 125px !important;
+          }
+
+          .compact-product-form form {
+            padding: 10px !important;
+          }
+
+          .compact-product-form form > * + * {
+            margin-top: 10px !important;
+          }
+        }
+      `}
+    </style>
   );
 }
