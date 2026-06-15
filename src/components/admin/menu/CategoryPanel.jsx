@@ -1,10 +1,4 @@
-import {
-  Edit,
-  FolderPlus,
-  Loader2,
-  Plus,
-  Trash,
-} from "lucide-react";
+import { Edit, FolderPlus, Loader2, Plus, Trash } from "lucide-react";
 
 import { cn } from "../../../utils/admin/menuItemUtils";
 
@@ -25,113 +19,129 @@ export default function CategoryPanel({
   onDeleteCategory,
 }) {
   return (
-    <section className="rounded-[16px] border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-black">Danh mục</h2>
-          <p className="mt-1 text-sm text-neutral-500">
+    <section className="rounded-[12px] border border-neutral-200 bg-white p-3 shadow-sm sm:p-5">
+      <div className="flex items-start justify-between gap-3 border-b border-neutral-200 pb-4">
+        <div className="min-w-0">
+          <h2 className="text-xl font-black text-neutral-950">Danh mục</h2>
+
+          <p className="mt-1 text-sm leading-6 text-neutral-500">
             Tạo nhóm món để khách lọc menu dễ hơn.
           </p>
         </div>
 
-        <div className="grid h-11 w-11 place-items-center rounded-[10px] bg-neutral-100 text-neutral-700">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px] bg-neutral-100 text-neutral-700">
           <FolderPlus size={21} />
         </div>
       </div>
 
-      <form onSubmit={onCreateCategory} className="mt-4 flex gap-2">
+      <form
+        onSubmit={onCreateCategory}
+        className="mt-4 grid gap-2 min-[430px]:grid-cols-[1fr_52px]"
+      >
         <input
           value={newCategoryName}
           onChange={(event) => setNewCategoryName(event.target.value)}
           placeholder="Cà phê, Trà sữa..."
-          className="min-w-0 flex-1 rounded-[10px] border border-neutral-200 px-4 py-3 text-sm outline-none transition focus:border-neutral-950"
+          className="h-12 min-w-0 rounded-[8px] border border-neutral-200 bg-white px-4 text-sm font-bold text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950"
         />
 
         <button
           type="submit"
           disabled={categorySubmitting}
-          className="grid h-12 w-12 place-items-center rounded-[10px] bg-neutral-950 text-white disabled:opacity-60"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-[8px] bg-neutral-950 px-4 text-sm font-black uppercase tracking-[0.08em] text-white transition hover:bg-neutral-800 disabled:opacity-60 min-[430px]:px-0"
         >
           {categorySubmitting ? (
             <Loader2 size={20} className="animate-spin" />
           ) : (
             <Plus size={20} />
           )}
+
+          <span className="min-[430px]:hidden">Thêm danh mục</span>
         </button>
       </form>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-3">
         {categories.length === 0 && (
-          <p className="rounded-[10px] bg-neutral-50 p-4 text-sm text-neutral-500">
-            Chưa có danh mục.
-          </p>
+          <div className="rounded-[10px] border border-dashed border-neutral-300 bg-neutral-50 p-5 text-center">
+            <div className="mx-auto grid h-11 w-11 place-items-center rounded-[8px] bg-white text-neutral-500 ring-1 ring-neutral-200">
+              <FolderPlus size={22} />
+            </div>
+
+            <p className="mt-3 text-sm font-bold text-neutral-500">
+              Chưa có danh mục.
+            </p>
+          </div>
         )}
 
-        {categories.map((category) => {
+        {categories.map((category, index) => {
           const isEditing = editingCategoryId === category.id;
+          const isActive = category.isActive !== false;
+          const itemCount = itemCountByCategory[category.id] || 0;
 
           return (
             <div
               key={category.id}
-              className="rounded-[12px] border border-neutral-100 bg-neutral-50 p-3"
+              className="rounded-[12px] border border-neutral-200 bg-white p-3 shadow-sm transition hover:border-neutral-300 hover:shadow-md"
             >
               {isEditing ? (
-                <div className="space-y-3">
-                  <input
-                    value={editingCategoryName}
-                    onChange={(event) =>
-                      setEditingCategoryName(event.target.value)
-                    }
-                    className="w-full rounded-[10px] border border-neutral-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-neutral-950"
-                  />
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onUpdateCategory(category.id)}
-                      className="rounded-[10px] bg-neutral-950 px-3 py-2.5 text-sm font-bold text-white"
-                    >
-                      Lưu
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={onCancelEdit}
-                      className="rounded-[10px] bg-white px-3 py-2.5 text-sm font-bold text-neutral-600 ring-1 ring-neutral-200"
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                </div>
+                <EditCategoryForm
+                  value={editingCategoryName}
+                  setValue={setEditingCategoryName}
+                  onSave={() => onUpdateCategory(category.id)}
+                  onCancel={onCancelEdit}
+                />
               ) : (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
                   <div className="min-w-0">
-                    <p className="truncate font-black">{category.name}</p>
+                    <div className="flex items-start gap-2">
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-neutral-950 text-xs font-black text-white">
+                        {index + 1}
+                      </span>
 
-                    <p className="mt-1 text-xs font-medium text-neutral-400">
-                      {itemCountByCategory[category.id] || 0} món ·{" "}
-                      {category.isActive ? "Đang hiển thị" : "Đang ẩn"}
-                    </p>
+                      <div className="min-w-0">
+                        <p className="line-clamp-1 font-black text-neutral-950">
+                          {category.name}
+                        </p>
+
+                        <p className="mt-1 text-xs font-bold text-neutral-400">
+                          {itemCount} món
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span
+                        className={cn(
+                          "rounded-[7px] px-2.5 py-1 text-xs font-black",
+                          isActive
+                            ? "bg-green-50 text-green-700"
+                            : "bg-neutral-100 text-neutral-500"
+                        )}
+                      >
+                        {isActive ? "Đang hiển thị" : "Đang ẩn"}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex shrink-0 gap-2">
+                  <div className="grid grid-cols-[1fr_44px_44px] gap-2 min-[430px]:w-auto min-[430px]:grid-cols-[auto_40px_40px]">
                     <button
                       type="button"
                       onClick={() => onToggleCategory(category)}
                       className={cn(
-                        "rounded-[8px] px-3 py-2 text-xs font-bold",
-                        category.isActive
-                          ? "bg-green-50 text-green-700"
-                          : "bg-neutral-200 text-neutral-500"
+                        "h-10 rounded-[8px] px-3 text-xs font-black uppercase tracking-[0.06em] transition",
+                        isActive
+                          ? "bg-green-50 text-green-700 hover:bg-green-100"
+                          : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
                       )}
                     >
-                      {category.isActive ? "Hiện" : "Ẩn"}
+                      {isActive ? "Hiện" : "Ẩn"}
                     </button>
 
                     <button
                       type="button"
                       onClick={() => onStartEdit(category)}
-                      className="grid h-9 w-9 place-items-center rounded-[8px] bg-white text-neutral-600 ring-1 ring-neutral-200"
+                      className="grid h-10 w-11 place-items-center rounded-[8px] bg-neutral-100 text-neutral-700 transition hover:bg-neutral-200 min-[430px]:w-10"
+                      aria-label="Sửa danh mục"
                     >
                       <Edit size={15} />
                     </button>
@@ -139,7 +149,8 @@ export default function CategoryPanel({
                     <button
                       type="button"
                       onClick={() => onDeleteCategory(category.id)}
-                      className="grid h-9 w-9 place-items-center rounded-[8px] bg-red-50 text-red-600"
+                      className="grid h-10 w-11 place-items-center rounded-[8px] bg-red-50 text-red-600 transition hover:bg-red-100 min-[430px]:w-10"
+                      aria-label="Xóa danh mục"
                     >
                       <Trash size={15} />
                     </button>
@@ -151,5 +162,42 @@ export default function CategoryPanel({
         })}
       </div>
     </section>
+  );
+}
+
+function EditCategoryForm({ value, setValue, onSave, onCancel }) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="text-xs font-black uppercase tracking-[0.12em] text-neutral-400">
+          Sửa tên danh mục
+        </label>
+
+        <input
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          className="mt-2 h-12 w-full rounded-[8px] border border-neutral-200 bg-white px-4 text-sm font-bold text-neutral-900 outline-none transition focus:border-neutral-950"
+          autoFocus
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onSave}
+          className="h-11 rounded-[8px] bg-neutral-950 px-3 text-sm font-black uppercase tracking-[0.08em] text-white transition hover:bg-neutral-800"
+        >
+          Lưu
+        </button>
+
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-11 rounded-[8px] bg-white px-3 text-sm font-black uppercase tracking-[0.08em] text-neutral-600 ring-1 ring-neutral-200 transition hover:bg-neutral-50"
+        >
+          Hủy
+        </button>
+      </div>
+    </div>
   );
 }

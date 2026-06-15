@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Save } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  Globe2,
+  ImagePlus,
+  Loader2,
+  MapPin,
+  Phone,
+  Save,
+  Store,
+} from "lucide-react";
+
 import {
   DEFAULT_SHOP_ID,
   getShopById,
   saveShopSettings,
 } from "../../services/shopService";
+
 import { useAuth } from "../../hooks/useAuth";
 
 const initialForm = {
@@ -47,6 +59,7 @@ export default function SettingsPage() {
     async function loadShop() {
       try {
         setLoading(true);
+        setError("");
 
         const shop = await getShopById(DEFAULT_SHOP_ID);
 
@@ -114,163 +127,389 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) {
-    return <p className="text-neutral-500">Đang tải cài đặt quán...</p>;
-  }
+  if (loading) return <LoadingSettings />;
 
-  const publicUrl = form.slug ? `${window.location.origin}/${form.slug}` : "";
+  const publicUrl =
+    form.slug && typeof window !== "undefined"
+      ? `${window.location.origin}/${form.slug}`
+      : "";
 
   return (
-    <div>
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-wider text-neutral-400">
-          Settings
-        </p>
-        <h1 className="mt-1 text-3xl font-black">Cài đặt thông tin quán</h1>
-        <p className="mt-2 text-neutral-500">
-          Thông tin này sẽ hiển thị ở trang menu public.
-        </p>
+    <div className="space-y-4 sm:space-y-5">
+      <PageHeader publicUrl={publicUrl} isPublished={form.isPublished} />
+
+      <NoticeBox message={message} error={error} />
+
+      <form
+        onSubmit={handleSubmit}
+        className="grid gap-4 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]"
+      >
+        <div className="space-y-4">
+          <FormSection title="Thông tin quán" icon={Store}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                label="Tên quán"
+                value={form.name}
+                onChange={handleNameChange}
+                placeholder="Ví dụ: Hớp Coffee"
+                required
+              />
+
+              <Input
+                label="Slug đường dẫn"
+                value={form.slug}
+                onChange={(value) => updateField("slug", createSlug(value))}
+                placeholder="hop-coffee"
+                required
+              />
+
+              <Input
+                label="Số điện thoại"
+                value={form.phone}
+                onChange={(value) => updateField("phone", value)}
+                placeholder="090..."
+              />
+
+              <Input
+                label="Địa chỉ"
+                value={form.address}
+                onChange={(value) => updateField("address", value)}
+                placeholder="Địa chỉ quán"
+              />
+            </div>
+
+            <TextArea
+              label="Mô tả quán"
+              value={form.description}
+              onChange={(value) => updateField("description", value)}
+              placeholder="Mô tả ngắn về quán..."
+              rows={4}
+            />
+          </FormSection>
+
+          <FormSection title="Liên kết và mạng xã hội" icon={Globe2}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                label="Link Google Maps"
+                value={form.googleMapUrl}
+                onChange={(value) => updateField("googleMapUrl", value)}
+                placeholder="https://maps.google.com/..."
+              />
+
+              <Input
+                label="Link Zalo"
+                value={form.zaloUrl}
+                onChange={(value) => updateField("zaloUrl", value)}
+                placeholder="https://zalo.me/..."
+              />
+
+              <Input
+                label="Link Facebook"
+                value={form.facebookUrl}
+                onChange={(value) => updateField("facebookUrl", value)}
+                placeholder="https://facebook.com/..."
+              />
+            </div>
+          </FormSection>
+
+          <FormSection title="Hình ảnh thương hiệu" icon={ImagePlus}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                label="Logo URL"
+                value={form.logoUrl}
+                onChange={(value) => updateField("logoUrl", value)}
+                placeholder="Dán link ảnh logo"
+              />
+
+              <Input
+                label="Cover URL"
+                value={form.coverUrl}
+                onChange={(value) => updateField("coverUrl", value)}
+                placeholder="Dán link ảnh bìa"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-[150px_1fr]">
+              <PreviewBox
+                label="Logo"
+                imageUrl={form.logoUrl}
+                className="aspect-square"
+              />
+
+              <PreviewBox
+                label="Cover"
+                imageUrl={form.coverUrl}
+                className="aspect-[16/9]"
+              />
+            </div>
+          </FormSection>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <FormSection title="Trạng thái public" icon={CheckCircle2}>
+            <ToggleCard
+              checked={form.isPublished}
+              onChange={(checked) => updateField("isPublished", checked)}
+              title="Public menu"
+              description="Bật mục này thì khách mới xem được menu theo slug."
+            />
+
+            <PublicLinkBox publicUrl={publicUrl} />
+
+            <div className="rounded-[10px] border border-neutral-200 bg-neutral-50 p-4">
+              <p className="text-sm font-black text-neutral-950">
+                Thông tin hiển thị nhanh
+              </p>
+
+              <div className="mt-3 space-y-3">
+                <InfoLine icon={Store} label={form.name || "Chưa có tên quán"} />
+                <InfoLine
+                  icon={Phone}
+                  label={form.phone || "Chưa có số điện thoại"}
+                />
+                <InfoLine
+                  icon={MapPin}
+                  label={form.address || "Chưa có địa chỉ"}
+                />
+              </div>
+            </div>
+          </FormSection>
+
+          <div className="sticky bottom-3 z-20 rounded-[12px] bg-white/95 pt-2 backdrop-blur lg:static lg:bg-transparent lg:pt-0">
+            <button
+              disabled={saving}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-neutral-950 px-5 py-4 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[0_12px_26px_rgba(0,0,0,0.16)] transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60 lg:py-3 lg:shadow-none"
+            >
+              {saving ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Save size={18} />
+              )}
+
+              {saving ? "Đang lưu..." : "Lưu cài đặt"}
+            </button>
+          </div>
+        </aside>
+      </form>
+    </div>
+  );
+}
+
+function PageHeader({ publicUrl, isPublished }) {
+  return (
+    <div className="rounded-[12px] border border-neutral-200 bg-white p-3 shadow-sm sm:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-neutral-400">
+            Settings
+          </p>
+
+          <h1 className="mt-1 text-2xl font-black text-neutral-950 sm:text-3xl">
+            Cài đặt thông tin quán
+          </h1>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
+            Thông tin này sẽ hiển thị ở trang menu public cho khách hàng.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <span
+            className={[
+              "inline-flex w-fit items-center gap-2 rounded-[8px] px-3 py-2 text-sm font-black",
+              isPublished
+                ? "bg-green-50 text-green-700"
+                : "bg-neutral-100 text-neutral-500",
+            ].join(" ")}
+          >
+            <span className="h-2 w-2 rounded-full bg-current" />
+            {isPublished ? "Đang public" : "Chưa public"}
+          </span>
+
+          {publicUrl && (
+            <a
+              href={publicUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-[8px] border border-neutral-200 bg-white px-4 py-3 text-sm font-black text-neutral-900 transition hover:bg-neutral-50"
+            >
+              <ExternalLink size={17} />
+              Xem menu
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormSection({ title, icon: Icon, children }) {
+  return (
+    <section className="rounded-[12px] border border-neutral-200 bg-white p-3 shadow-sm sm:p-5">
+      <div className="mb-4 flex items-center gap-2 border-b border-neutral-200 pb-3">
+        {Icon && <Icon size={18} className="text-neutral-500" />}
+
+        <h2 className="text-base font-black text-neutral-950">{title}</h2>
       </div>
 
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function PublicLinkBox({ publicUrl }) {
+  if (!publicUrl) {
+    return (
+      <div className="rounded-[10px] border border-dashed border-neutral-300 bg-neutral-50 p-4">
+        <p className="text-sm font-bold text-neutral-500">
+          Nhập slug để tạo link menu.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={publicUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="block rounded-[10px] border border-neutral-200 bg-white p-4 transition hover:border-neutral-300 hover:bg-neutral-50"
+    >
+      <div className="flex items-start gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[8px] bg-neutral-950 text-white">
+          <ExternalLink size={17} />
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-sm font-black text-neutral-950">
+            Link menu khách hàng
+          </p>
+
+          <p className="mt-1 break-all text-sm leading-6 text-neutral-500">
+            {publicUrl}
+          </p>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+function ToggleCard({ checked, onChange, title, description }) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-[10px] border border-neutral-200 bg-white p-4 transition hover:border-neutral-300">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-0.5 h-5 w-5 shrink-0"
+      />
+
+      <span>
+        <span className="block text-sm font-black text-neutral-950">
+          {title}
+        </span>
+
+        <span className="mt-1 block text-xs leading-5 text-neutral-500">
+          {description}
+        </span>
+      </span>
+    </label>
+  );
+}
+
+function PreviewBox({ label, imageUrl, className = "" }) {
+  return (
+    <div>
+      <p className="mb-2 text-sm font-black text-neutral-800">{label}</p>
+
+      <div
+        className={[
+          "overflow-hidden rounded-[10px] border border-neutral-200 bg-neutral-50",
+          className,
+        ].join(" ")}
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={label}
+            className="h-full w-full object-contain p-2"
+          />
+        ) : (
+          <div className="grid h-full min-h-[130px] place-items-center text-neutral-400">
+            <div className="text-center">
+              <ImagePlus size={30} className="mx-auto" />
+              <p className="mt-2 text-xs font-bold">Chưa có ảnh</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InfoLine({ icon: Icon, label }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 text-sm text-neutral-600">
+      <Icon size={16} className="shrink-0 text-neutral-400" />
+
+      <span className="line-clamp-1 font-bold">{label}</span>
+    </div>
+  );
+}
+
+function NoticeBox({ message, error }) {
+  if (!message && !error) return null;
+
+  return (
+    <div className="space-y-3">
       {message && (
-        <div className="mt-5 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+        <div className="rounded-[8px] border border-green-100 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+        <div className="rounded-[8px] border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
           {error}
         </div>
       )}
+    </div>
+  );
+}
 
-      <form onSubmit={handleSubmit} className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
-        <div className="grid gap-5 md:grid-cols-2">
-          <Input
-            label="Tên quán"
-            value={form.name}
-            onChange={handleNameChange}
-            placeholder="Ví dụ: Cafe Sữa Đá"
-            required
-          />
+function LoadingSettings() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[12px] border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="h-4 w-28 animate-pulse rounded bg-neutral-100" />
+        <div className="mt-3 h-8 w-72 max-w-full animate-pulse rounded bg-neutral-100" />
+        <div className="mt-3 h-4 w-full max-w-xl animate-pulse rounded bg-neutral-100" />
+      </div>
 
-          <Input
-            label="Slug đường dẫn"
-            value={form.slug}
-            onChange={(value) => updateField("slug", createSlug(value))}
-            placeholder="cafe-sua-da"
-            required
-          />
-
-          <Input
-            label="Số điện thoại"
-            value={form.phone}
-            onChange={(value) => updateField("phone", value)}
-            placeholder="090..."
-          />
-
-          <Input
-            label="Địa chỉ"
-            value={form.address}
-            onChange={(value) => updateField("address", value)}
-            placeholder="Địa chỉ quán"
-          />
-
-          <Input
-            label="Link Google Maps"
-            value={form.googleMapUrl}
-            onChange={(value) => updateField("googleMapUrl", value)}
-            placeholder="https://maps.google.com/..."
-          />
-
-          <Input
-            label="Link Zalo"
-            value={form.zaloUrl}
-            onChange={(value) => updateField("zaloUrl", value)}
-            placeholder="https://zalo.me/..."
-          />
-
-          <Input
-            label="Link Facebook"
-            value={form.facebookUrl}
-            onChange={(value) => updateField("facebookUrl", value)}
-            placeholder="https://facebook.com/..."
-          />
-
-          <Input
-            label="Logo URL"
-            value={form.logoUrl}
-            onChange={(value) => updateField("logoUrl", value)}
-            placeholder="Dán link ảnh logo"
-          />
-
-          <div className="md:col-span-2">
-            <Input
-              label="Cover URL"
-              value={form.coverUrl}
-              onChange={(value) => updateField("coverUrl", value)}
-              placeholder="Dán link ảnh bìa"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-sm font-semibold">Mô tả quán</label>
-            <textarea
-              value={form.description}
-              onChange={(event) =>
-                updateField("description", event.target.value)
-              }
-              placeholder="Mô tả ngắn về quán..."
-              rows={4}
-              className="mt-2 w-full rounded-2xl border border-neutral-200 px-4 py-3 outline-none focus:border-neutral-950"
-            />
-          </div>
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-4">
+          <div className="h-72 animate-pulse rounded-[12px] bg-neutral-100" />
+          <div className="h-56 animate-pulse rounded-[12px] bg-neutral-100" />
         </div>
 
-        <label className="mt-5 flex items-center gap-3 rounded-2xl bg-neutral-50 p-4">
-          <input
-            type="checkbox"
-            checked={form.isPublished}
-            onChange={(event) =>
-              updateField("isPublished", event.target.checked)
-            }
-            className="h-5 w-5"
-          />
+        <div className="h-72 animate-pulse rounded-[12px] bg-neutral-100" />
+      </div>
+    </div>
+  );
+}
 
-          <div>
-            <p className="font-semibold">Public menu</p>
-            <p className="text-sm text-neutral-500">
-              Bật mục này thì khách mới xem được menu theo slug.
-            </p>
-          </div>
-        </label>
+function TextArea({ label, value, onChange, placeholder, rows = 3 }) {
+  return (
+    <div>
+      <label className="text-sm font-black text-neutral-800">{label}</label>
 
-        <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          {publicUrl ? (
-            <a
-              href={publicUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-600 hover:text-neutral-950"
-            >
-              <ExternalLink size={16} />
-              {publicUrl}
-            </a>
-          ) : (
-            <p className="text-sm text-neutral-400">
-              Nhập slug để tạo link menu.
-            </p>
-          )}
-
-          <button
-            disabled={saving}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-neutral-950 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Save size={18} />
-            {saving ? "Đang lưu..." : "Lưu cài đặt"}
-          </button>
-        </div>
-      </form>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="mt-2 w-full resize-none rounded-[8px] border border-neutral-200 bg-white px-4 py-3 text-sm font-bold text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950"
+      />
     </div>
   );
 }
@@ -284,13 +523,14 @@ function Input({
 }) {
   return (
     <div>
-      <label className="text-sm font-semibold">{label}</label>
+      <label className="text-sm font-black text-neutral-800">{label}</label>
+
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         required={required}
-        className="mt-2 w-full rounded-2xl border border-neutral-200 px-4 py-3 outline-none focus:border-neutral-950"
+        className="mt-2 h-12 w-full rounded-[8px] border border-neutral-200 bg-white px-4 text-sm font-bold text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-950"
       />
     </div>
   );
