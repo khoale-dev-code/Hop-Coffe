@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #f8f2ea;
+}
+
+.hop-client-bg {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(124, 174, 184, 0.18), transparent 28%),
+    radial-gradient(circle at 88% 20%, rgba(107, 75, 62, 0.1), transparent 30%),
+    linear-gradient(180deg, #f8f2ea 0%, #fffaf4 48%, #f1e3d4 100%);
+}
+
+.hop-hide-scroll {
+  scrollbar-width: none;
+}
+
+.hop-hide-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.hop-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  animation: hopReveal 0.68s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes hopReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hop-reveal {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  * {
+    scroll-behavior: auto !important;
+  }
+}
