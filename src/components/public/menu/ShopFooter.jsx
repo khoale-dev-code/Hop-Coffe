@@ -1,46 +1,45 @@
 import {
   ArrowUp,
-  AtSign,
-  Camera,
   Coffee,
   ExternalLink,
   MapPin,
-  MessageCircle,
   Phone,
-  Send,
 } from "lucide-react";
 
 const SOCIAL_LINKS = [
   {
     key: "messenger",
     href: "https://www.facebook.com/messages/t/572092459324685",
-    icon: MessageCircle,
+    icon: MessengerLogo,
     label: "Messenger",
-    colorClass: "bg-[#0084FF] text-white",
+    brandStyle: {
+      background: "#0084FF",
+    },
   },
   {
     key: "instagram",
     href: "https://www.instagram.com/hop.cafe_",
-    icon: Camera,
+    icon: InstagramLogo,
     label: "Instagram",
-    // Instagram gradient via inline style
-    colorClass: "text-white",
-    style: {
+    brandStyle: {
       background:
-        "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%)",
+        "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 8%, #fd5949 42%, #d6249f 62%, #285AEB 100%)",
     },
   },
   {
     key: "threads",
     href: "https://www.threads.com/@hop.cafe_",
-    icon: AtSign,
+    icon: ThreadsLogo,
     label: "Threads",
-    colorClass: "bg-black text-white",
+    brandStyle: {
+      background: "#000000",
+    },
   },
 ];
 
 export default function ShopFooter({ shop }) {
   const shopName = shop?.name || "Hớp";
+
   const description =
     shop?.description ||
     "Menu online giúp khách xem sản phẩm nhanh hơn, rõ giá hơn và dễ liên hệ với quán.";
@@ -51,9 +50,11 @@ export default function ShopFooter({ shop }) {
           {
             key: "facebook",
             href: shop.facebookUrl,
-            icon: ExternalLink,
+            icon: FacebookLogo,
             label: "Facebook",
-            colorClass: "bg-[#1877F2] text-white",
+            brandStyle: {
+              background: "#1877F2",
+            },
           },
         ]
       : []),
@@ -62,9 +63,11 @@ export default function ShopFooter({ shop }) {
           {
             key: "zalo",
             href: shop.zaloUrl,
-            icon: Send,
+            icon: ZaloLogo,
             label: "Zalo",
-            colorClass: "bg-[#0068FF] text-white",
+            brandStyle: {
+              background: "#0068FF",
+            },
           },
         ]
       : []),
@@ -79,8 +82,14 @@ export default function ShopFooter({ shop }) {
     >
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.25fr_0.875fr_0.875fr]">
-          <BrandCard shop={shop} shopName={shopName} description={description} />
+          <BrandCard
+            shop={shop}
+            shopName={shopName}
+            description={description}
+          />
+
           <ContactCard shop={shop} />
+
           <SocialCard socials={allSocials} shopName={shopName} />
         </div>
 
@@ -89,9 +98,13 @@ export default function ShopFooter({ shop }) {
             © {new Date().getFullYear()} {shopName}. All rights reserved.
           </p>
 
-          <nav className="flex flex-wrap items-center gap-2" aria-label="Footer navigation">
+          <nav
+            className="flex flex-wrap items-center gap-2"
+            aria-label="Footer navigation"
+          >
             <FooterLink href="#menu" label="Sản phẩm" />
             <FooterLink href="#promotions" label="Khuyến mãi" />
+
             <a
               href="#"
               className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-black !text-white transition hover:bg-neutral-700 hover:!text-white active:scale-95"
@@ -107,14 +120,17 @@ export default function ShopFooter({ shop }) {
   );
 }
 
-/* ─── Brand card ──────────────────────────────────────────── */
 function BrandCard({ shop, shopName, description }) {
   return (
     <Card className="sm:col-span-2 lg:col-span-1">
       <div className="flex items-center gap-3.5">
         <div className="grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
           {shop?.logoUrl ? (
-            <img src={shop.logoUrl} alt={shopName} className="h-full w-full object-contain p-1" />
+            <img
+              src={shop.logoUrl}
+              alt={shopName}
+              className="h-full w-full object-contain p-1"
+            />
           ) : (
             <Coffee size={24} className="text-[#6B4B3E]" aria-hidden="true" />
           )}
@@ -124,13 +140,16 @@ function BrandCard({ shop, shopName, description }) {
           <h2 className="truncate text-[22px] font-black tracking-tight text-neutral-900">
             {shopName}
           </h2>
+
           <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#7CAEB8]">
             Coffee · Tea · Drinks
           </p>
         </div>
       </div>
 
-      <p className="mt-4 max-w-sm text-sm leading-7 text-neutral-500">{description}</p>
+      <p className="mt-4 max-w-sm text-sm leading-7 text-neutral-500">
+        {description}
+      </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         {shop?.phone && (
@@ -148,7 +167,7 @@ function BrandCard({ shop, shopName, description }) {
             href={shop.googleMapUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-[9px] border border-neutral-200 bg-white px-4 py-2.5 text-sm font-black text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300 active:scale-95"
+            className="inline-flex items-center justify-center gap-2 rounded-[9px] border border-neutral-200 bg-white px-4 py-2.5 text-sm font-black text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-95"
           >
             <MapPin size={16} aria-hidden="true" />
             Chỉ đường
@@ -159,7 +178,6 @@ function BrandCard({ shop, shopName, description }) {
   );
 }
 
-/* ─── Contact card ──────────────────────────────────────────── */
 function ContactCard({ shop }) {
   const hasContact = shop?.phone || shop?.address;
 
@@ -196,20 +214,19 @@ function ContactCard({ shop }) {
   );
 }
 
-/* ─── Social card ───────────────────────────────────────────── */
 function SocialCard({ socials, shopName }) {
   return (
     <Card>
       <SectionTitle title={`Kết nối với ${shopName}`} />
+
       <div className="mt-3 space-y-2">
-        {socials.map(({ key, href, icon, label, colorClass, style }) => (
+        {socials.map(({ key, href, icon, label, brandStyle }) => (
           <SocialLink
             key={key}
             href={href}
             icon={icon}
             label={label}
-            colorClass={colorClass}
-            iconStyle={style}
+            brandStyle={brandStyle}
           />
         ))}
       </div>
@@ -217,7 +234,6 @@ function SocialCard({ socials, shopName }) {
   );
 }
 
-/* ─── Shared primitives ─────────────────────────────────────── */
 function Card({ children, className = "" }) {
   return (
     <div
@@ -243,10 +259,12 @@ function ContactLine({ icon: Icon, label, value, href }) {
       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-neutral-100 text-[#7CAEB8]">
         <Icon size={15} aria-hidden="true" />
       </div>
+
       <div className="min-w-0">
         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-neutral-400">
           {label}
         </p>
+
         <p className="mt-0.5 line-clamp-3 text-sm font-bold leading-6 text-neutral-700">
           {value}
         </p>
@@ -268,7 +286,7 @@ function ContactLine({ icon: Icon, label, value, href }) {
   );
 }
 
-function SocialLink({ href, icon: Icon, label, colorClass = "bg-neutral-200 text-neutral-600", iconStyle }) {
+function SocialLink({ href, icon: Icon, label, brandStyle }) {
   return (
     <a
       href={href}
@@ -278,12 +296,15 @@ function SocialLink({ href, icon: Icon, label, colorClass = "bg-neutral-200 text
     >
       <span className="flex min-w-0 items-center gap-2.5">
         <span
-          className={`grid h-8 w-8 shrink-0 place-items-center rounded-[8px] transition-transform group-hover:scale-110 ${colorClass}`}
-          style={iconStyle}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white shadow-sm transition-transform group-hover:scale-110"
+          style={brandStyle}
         >
-          <Icon size={15} aria-hidden="true" />
+          <Icon className="h-[21px] w-[21px]" />
         </span>
-        <span className="truncate text-sm font-black text-neutral-800">{label}</span>
+
+        <span className="truncate text-sm font-black text-neutral-800">
+          {label}
+        </span>
       </span>
 
       <ExternalLink
@@ -303,5 +324,95 @@ function FooterLink({ href, label }) {
     >
       {label}
     </a>
+  );
+}
+
+/* Social logos */
+
+function MessengerLogo({ className = "" }) {
+  return (
+    <svg viewBox="0 0 36 36" className={className} aria-hidden="true">
+      <path
+        fill="#fff"
+        d="M18 5.2C10.8 5.2 5.2 10.5 5.2 17.7c0 3.8 1.55 7.05 4.08 9.28.22.2.34.47.35.76l.08 2.3c.02.74.78 1.2 1.44.88l2.57-1.26c.23-.11.49-.13.73-.06 1.12.31 2.31.47 3.55.47 7.2 0 12.8-5.28 12.8-12.36C30.8 10.5 25.2 5.2 18 5.2Z"
+      />
+      <path
+        fill="#0084FF"
+        d="m10.4 21.35 3.76-5.96c.6-.95 1.87-1.19 2.77-.52l2.98 2.24c.28.2.66.2.93-.03l4.02-3.43c.54-.46 1.25.18.87.78l-3.76 5.96c-.6.95-1.87 1.19-2.77.52l-2.98-2.24c-.28-.2-.66-.2-.93.03l-4.02 3.43c-.54.46-1.25-.18-.87-.78Z"
+      />
+    </svg>
+  );
+}
+
+function InstagramLogo({ className = "" }) {
+  return (
+    <svg viewBox="0 0 36 36" className={className} fill="none" aria-hidden="true">
+      <rect
+        x="8"
+        y="8"
+        width="20"
+        height="20"
+        rx="6"
+        stroke="#fff"
+        strokeWidth="3"
+      />
+      <circle cx="18" cy="18" r="4.6" stroke="#fff" strokeWidth="3" />
+      <circle cx="24.2" cy="11.8" r="1.6" fill="#fff" />
+    </svg>
+  );
+}
+
+function ThreadsLogo({ className = "" }) {
+  return (
+    <svg viewBox="0 0 36 36" className={className} fill="none" aria-hidden="true">
+      <path
+        d="M18.15 31C10.8 31 6 26.05 6 18.1C6 10.05 10.95 5 18.35 5C24.95 5 29.1 8.65 30 14.7"
+        stroke="#fff"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M23.15 16.4C22.6 13.35 20.8 11.8 18.25 11.8C15.15 11.8 13.35 13.95 13.35 17.85C13.35 22 15.25 24.2 18.7 24.2C21.8 24.2 23.65 22.55 23.65 20.25C23.65 18.05 22.05 16.85 19.15 16.85H16.85"
+        stroke="#fff"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M23.1 16.45C27.4 17.15 30 19.45 30 22.9C30 27.65 25.9 31 19.15 31"
+        stroke="#fff"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function FacebookLogo({ className = "" }) {
+  return (
+    <svg viewBox="0 0 36 36" className={className} aria-hidden="true">
+      <path
+        fill="#fff"
+        d="M20.35 31V19.65h3.8l.58-4.42h-4.38v-2.82c0-1.28.36-2.15 2.2-2.15h2.35V6.3C24.5 6.25 23.1 6.13 21.5 6.13c-3.36 0-5.66 2.05-5.66 5.82v3.28h-3.8v4.42h3.8V31h4.51Z"
+      />
+    </svg>
+  );
+}
+
+function ZaloLogo({ className = "" }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+      <rect x="4" y="7" width="40" height="34" rx="10" fill="#fff" />
+      <text
+        x="24"
+        y="29"
+        textAnchor="middle"
+        fontSize="13"
+        fontWeight="900"
+        fontFamily="Arial, sans-serif"
+        fill="#0068FF"
+      >
+        Zalo
+      </text>
+    </svg>
   );
 }

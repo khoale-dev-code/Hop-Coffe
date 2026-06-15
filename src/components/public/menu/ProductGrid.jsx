@@ -321,14 +321,14 @@ function ProductDetailModal({ item, shop, onClose }) {
         aria-label="Đóng chi tiết sản phẩm"
       />
 
-      <div className="relative z-10 max-h-[94vh] w-full overflow-hidden rounded-t-[16px] bg-white shadow-2xl sm:max-w-5xl sm:rounded-[10px]">
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur-xl sm:hidden">
+      <div className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[16px] bg-white shadow-2xl sm:max-h-[92vh] sm:max-w-5xl sm:rounded-[10px]">
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur-xl">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9B7A68]">
               {shop?.name || "Hớp Coffee"}
             </p>
 
-            <p className="line-clamp-1 text-sm font-black text-[#2F221C]">
+            <p className="line-clamp-1 text-sm font-black text-[#2F221C] sm:text-base">
               {item.name}
             </p>
           </div>
@@ -336,38 +336,29 @@ function ProductDetailModal({ item, shop, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="ml-3 grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-neutral-100 text-[#2F221C]"
+            className="ml-3 grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-neutral-100 text-[#2F221C] transition hover:bg-neutral-200"
             aria-label="Đóng"
           >
             <X size={19} />
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-3 top-3 z-20 hidden h-10 w-10 place-items-center rounded-[6px] bg-white text-[#2F221C] shadow-md ring-1 ring-neutral-200 transition hover:bg-neutral-50 sm:grid"
-          aria-label="Đóng"
-        >
-          <X size={20} />
-        </button>
-
-        <div className="max-h-[94vh] overflow-y-auto sm:max-h-[92vh]">
-          <div className="grid sm:grid-cols-1 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="border-b border-neutral-200 bg-white p-3 sm:p-5 lg:border-b-0 lg:border-r lg:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="border-b border-neutral-200 bg-white p-3 lg:border-b-0 lg:border-r lg:p-5">
               <div className="relative overflow-hidden rounded-[8px] border border-neutral-200 bg-white">
-                <div className="aspect-[4/3] sm:aspect-square">
-                  {activeImage?.url ? (
+               <div className="grid h-[360px] place-items-center overflow-hidden bg-white min-[430px]:h-[350px] sm:h-[390px] lg:h-[520px]">
+                {activeImage?.url ? (
                     <img
-                      src={activeImage.url}
-                      alt={activeImage.name || item.name}
-                      className="h-full w-full object-contain p-4 sm:p-7"
+                    src={activeImage.url}
+                    alt={activeImage.name || item.name}
+                    className="max-h-full max-w-full object-contain p-3 sm:p-6"
                     />
-                  ) : (
+                ) : (
                     <div className="grid h-full w-full place-items-center bg-neutral-50 text-[#6B4B3E]">
-                      <Coffee size={64} />
+                    <Coffee size={56} />
                     </div>
-                  )}
+                )}
                 </div>
 
                 {images.length > 1 && (
@@ -375,7 +366,7 @@ function ProductDetailModal({ item, shop, onClose }) {
                     <button
                       type="button"
                       onClick={goPrevImage}
-                      className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[6px] bg-white/95 text-[#6B4B3E] shadow ring-1 ring-neutral-200 transition hover:bg-neutral-50 sm:left-3"
+                      className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[6px] bg-white/95 text-[#6B4B3E] shadow ring-1 ring-neutral-200 transition hover:bg-neutral-50"
                       aria-label="Ảnh trước"
                     >
                       <ChevronLeft size={20} />
@@ -384,7 +375,7 @@ function ProductDetailModal({ item, shop, onClose }) {
                     <button
                       type="button"
                       onClick={goNextImage}
-                      className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[6px] bg-white/95 text-[#6B4B3E] shadow ring-1 ring-neutral-200 transition hover:bg-neutral-50 sm:right-3"
+                      className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[6px] bg-white/95 text-[#6B4B3E] shadow ring-1 ring-neutral-200 transition hover:bg-neutral-50"
                       aria-label="Ảnh sau"
                     >
                       <ChevronRight size={20} />
@@ -418,8 +409,8 @@ function ProductDetailModal({ item, shop, onClose }) {
               )}
             </div>
 
-            <div className="bg-white p-4 pb-6 sm:p-7">
-              <div className="hidden sm:block">
+            <div className="bg-white p-4 pb-4 sm:p-6 lg:p-7">
+              <div className="hidden lg:block">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#9B7A68]">
                   {shop?.name || "Hớp Coffee"}
                 </p>
@@ -429,7 +420,7 @@ function ProductDetailModal({ item, shop, onClose }) {
                 </h2>
               </div>
 
-              <div className="flex flex-wrap gap-2 sm:mt-3">
+              <div className="flex flex-wrap gap-2 lg:mt-3">
                 {item.isFeatured && (
                   <span className="inline-flex items-center gap-1 rounded-[4px] bg-[#B22830] px-2.5 py-1 text-[10px] font-black uppercase text-white">
                     <Star size={11} />
@@ -456,44 +447,46 @@ function ProductDetailModal({ item, shop, onClose }) {
               </div>
 
               <div className="mt-4 rounded-[8px] border border-neutral-200 bg-white p-4 shadow-sm sm:mt-5">
-                <p className="text-sm font-black text-[#73584D]">
-                  Giá sản phẩm
-                </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black text-[#73584D]">
+                      Giá sản phẩm
+                    </p>
 
-                {hasSelectedSizeSale && (
-                  <p className="mt-2 text-sm font-bold text-neutral-400 line-through">
-                    {formatPrice(selectedSize.oldPrice)}
-                  </p>
-                )}
+                    {selectedSize?.name && (
+                      <p className="mt-1 text-sm font-bold text-neutral-500">
+                        {hasRealSizes ? selectedSize.name : "Giá mặc định"}
+                      </p>
+                    )}
+                  </div>
 
-                <p className="mt-1 text-2xl font-black text-[#B22830] sm:text-3xl">
-                  {formatPrice(selectedSize?.price || item.price)}
-                </p>
+                  <div className="shrink-0 text-right">
+                    {hasSelectedSizeSale && (
+                      <p className="text-sm font-bold text-neutral-400 line-through">
+                        {formatPrice(selectedSize.oldPrice)}
+                      </p>
+                    )}
 
-                {selectedSize?.name && (
-                  <p className="mt-1 text-sm font-bold text-neutral-500">
-                    {hasRealSizes ? selectedSize.name : "Giá mặc định"}
-                  </p>
-                )}
-              </div>
-
-              {item.description && (
-                <div className="mt-4 rounded-[8px] border border-neutral-200 bg-white p-4 sm:mt-5">
-                  <p className="font-black text-[#2F221C]">Mô tả sản phẩm</p>
-
-                  <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#73584D]">
-                    {item.description}
-                  </p>
+                    <p className="mt-1 text-2xl font-black text-[#B22830] sm:text-3xl">
+                      {formatPrice(selectedSize?.price || item.price)}
+                    </p>
+                  </div>
                 </div>
-              )}
+              </div>
 
               {hasRealSizes && (
                 <div className="mt-4 sm:mt-5">
-                  <p className="font-black text-[#2F221C]">
-                    Size / lựa chọn ly
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-black text-[#2F221C]">
+                      Size / lựa chọn ly
+                    </p>
 
-                  <div className="mt-3 grid gap-2">
+                    <p className="text-xs font-bold text-neutral-400 sm:hidden">
+                      Lướt ngang
+                    </p>
+                  </div>
+
+                  <div className="hop-hide-scroll mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 sm:grid sm:snap-none sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-1 xl:grid-cols-2">
                     {sizes.map((size) => {
                       const active = selectedSize?.id === size.id;
                       const hasSizeSale =
@@ -505,26 +498,26 @@ function ProductDetailModal({ item, shop, onClose }) {
                           type="button"
                           onClick={() => setSelectedSizeId(size.id)}
                           className={cn(
-                            "rounded-[8px] border p-3 text-left transition sm:p-4",
+                            "min-h-[92px] w-[150px] shrink-0 snap-start rounded-[8px] border p-3 text-left transition sm:w-auto sm:p-4",
                             active
                               ? "border-[#6B4B3E] bg-white shadow-sm ring-2 ring-[#6B4B3E]/10"
                               : "border-neutral-200 bg-white hover:border-[#C9A58D]"
                           )}
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex h-full flex-col justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="font-black text-[#2F221C]">
+                              <p className="line-clamp-1 font-black text-[#2F221C]">
                                 {size.name}
                               </p>
 
                               {size.description && (
-                                <p className="mt-1 text-xs leading-5 text-[#73584D]">
+                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#73584D]">
                                   {size.description}
                                 </p>
                               )}
                             </div>
 
-                            <div className="shrink-0 text-right">
+                            <div>
                               {hasSizeSale && (
                                 <p className="text-xs font-bold text-neutral-400 line-through">
                                   {formatPrice(size.oldPrice)}
@@ -540,6 +533,16 @@ function ProductDetailModal({ item, shop, onClose }) {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {item.description && (
+                <div className="mt-4 rounded-[8px] border border-neutral-200 bg-white p-4 sm:mt-5">
+                  <p className="font-black text-[#2F221C]">Mô tả sản phẩm</p>
+
+                  <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#73584D]">
+                    {item.description}
+                  </p>
                 </div>
               )}
 
@@ -559,16 +562,18 @@ function ProductDetailModal({ item, shop, onClose }) {
                   </div>
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-6 w-full rounded-[8px] bg-[#2F221C] px-5 py-4 text-sm font-black uppercase tracking-[0.1em] text-white transition hover:bg-[#6B4B3E] sm:mt-7"
-              >
-                Đóng chi tiết
-              </button>
             </div>
           </div>
+        </div>
+
+        <div className="sticky bottom-0 z-20 border-t border-neutral-200 bg-white/95 p-3 backdrop-blur-xl sm:p-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-[8px] bg-[#2F221C] px-5 py-4 text-sm font-black uppercase tracking-[0.1em] text-white transition hover:bg-[#6B4B3E]"
+          >
+            Đóng chi tiết
+          </button>
         </div>
       </div>
     </div>

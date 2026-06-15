@@ -9,7 +9,12 @@ import {
   Phone,
   Save,
   Store,
+  Trash2,
+  Upload,
 } from "lucide-react";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+
+import { storage } from "../../lib/firebase";
 
 import {
   DEFAULT_SHOP_ID,
@@ -45,12 +50,34 @@ function createSlug(value) {
     .replace(/\s+/g, "-");
 }
 
+function cleanFileName(name = "image") {
+  return name
+    .toLowerCase()
+    .replaceAll(" ", "-")
+    .replace(/[^a-z0-9-.]/g, "");
+}
+
+async function uploadShopImage(shopId, file, type = "image") {
+  if (!shopId || !file) return "";
+
+  const fileName = `${Date.now()}-${cleanFileName(file.name)}`;
+
+  const fileRef = ref(storage, `shops/${shopId}/settings/${type}/${fileName}`);
+
+  await uploadBytes(fileRef, file);
+
+  return getDownloadURL(fileRef);
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
 
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -103,6 +130,52 @@ export default function SettingsPage() {
       name: value,
       slug: prev.slug || createSlug(value),
     }));
+  }
+
+  async function handleUploadImage(event, fieldName) {
+    const file = event.target.files?.[0];
+
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Vui lòng chọn đúng file hình ảnh.");
+      return;
+    }
+
+    const isLogo = fieldName === "logoUrl";
+
+    try {
+      setMessage("");
+      setError("");
+
+      if (isLogo) {
+        setUploadingLogo(true);
+      } else {
+        setUploadingCover(true);
+      }
+
+      const url = await uploadShopImage(
+        DEFAULT_SHOP_ID,
+        file,
+        isLogo ? "logo" : "cover"
+      );
+
+      updateField(fieldName, url);
+
+      setMessage(
+        isLogo
+          ? "Đã tải logo lên thành công. Nhớ bấm Lưu cài đặt."
+          : "Đã tải ảnh bìa lên thành công. Nhớ bấm Lưu cài đặt."
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Không thể tải hình lên. Vui lòng kiểm tra Firebase Storage.");
+    } finally {
+      setUploadingLogo(false);
+      setUploadingCover(false);
+    }
   }
 
   async function handleSubmit(event) {
@@ -214,19 +287,36 @@ export default function SettingsPage() {
 
           <FormSection title="Hình ảnh thương hiệu" icon={ImagePlus}>
             <div className="grid gap-4 md:grid-cols-2">
-              <Input
+              <ImageUrlInput
                 label="Logo URL"
                 value={form.logoUrl}
                 onChange={(value) => updateField("logoUrl", value)}
-                placeholder="Dán link ảnh logo"
+                onClear={() => updateField("logoUrl", "")}
+                onUpload={(event) => handleUploadImage(event, "logoUrl")}
+                uploading={uploadingLogo}
+                placeholder="Dán link ảnh logo hoặc tải từ máy"
               />
 
-              <Input
+              <ImageUrlInput
                 label="Cover URL"
                 value={form.coverUrl}
                 onChange={(value) => updateField("coverUrl", value)}
-                placeholder="Dán link ảnh bìa"
+                onClear={() => updateField("coverUrl", "")}
+                onUpload={(event) => handleUploadImage(event, "coverUrl")}
+                uploading={uploadingCover}
+                placeholder="Dán link ảnh bìa hoặc tải từ máy"
               />
+            </div>
+
+            <div className="rounded-[10px] border border-dashed border-neutral-200 bg-neutral-50 p-4">
+              <p className="text-sm font-black text-neutral-800">
+                Gợi ý kích thước ảnh
+              </p>
+
+              <div className="mt-2 grid gap-2 text-sm font-medium leading-6 text-neutral-500 sm:grid-cols-2">
+                <p>Logo: ảnh vuông, nền trong hoặc nền trắng.</p>
+                <p>Cover: ảnh ngang tỷ lệ 16:9, rõ nét trên điện thoại.</p>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-[150px_1fr]">
@@ -277,7 +367,7 @@ export default function SettingsPage() {
 
           <div className="sticky bottom-3 z-20 rounded-[12px] bg-white/95 pt-2 backdrop-blur lg:static lg:bg-transparent lg:pt-0">
             <button
-              disabled={saving}
+              disabled={saving || uploadingLogo || uploadingCover}
               className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-neutral-950 px-5 py-4 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[0_12px_26px_rgba(0,0,0,0.16)] transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60 lg:py-3 lg:shadow-none"
             >
               {saving ? (
@@ -354,6 +444,61 @@ function FormSection({ title, icon: Icon, children }) {
 
       <div className="space-y-4">{children}</div>
     </section>
+  );
+}
+
+function ImageUrlInput({
+  label,
+  value,
+  onChange,
+  onClear,
+  onUpload,
+  uploading,
+  placeholder,
+}) {
+  return (
+    <div>
+      <label className="text-sm font-black text-neutral-800">{label}</label>
+
+      <div className="mt-2 overflow-hidden rounded-[10px] border border-neutral-200 bg-white">
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="h-12 w-full border-b border-neutral-100 px-4 text-sm font-bold text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:bg-neutral-50"
+        />
+
+        <div className="grid grid-cols-2 gap-2 p-2">
+          <label className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-neutral-950 px-3 text-xs font-black uppercase tracking-[0.06em] text-white transition hover:bg-neutral-800">
+            {uploading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Upload size={16} />
+            )}
+
+            {uploading ? "Đang tải..." : "Chọn ảnh"}
+
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploading}
+              onChange={onUpload}
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={!value || uploading}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[8px] border border-neutral-200 bg-white px-3 text-xs font-black uppercase tracking-[0.06em] text-neutral-600 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Trash2 size={15} />
+            Xóa ảnh
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -514,13 +659,7 @@ function TextArea({ label, value, onChange, placeholder, rows = 3 }) {
   );
 }
 
-function Input({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required = false,
-}) {
+function Input({ label, value, onChange, placeholder, required = false }) {
   return (
     <div>
       <label className="text-sm font-black text-neutral-800">{label}</label>

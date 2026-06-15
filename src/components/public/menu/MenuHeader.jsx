@@ -145,18 +145,17 @@ export default function MenuHeader({ shop, mobileOpen, setMobileOpen }) {
               );
             })}
           </nav>
-
-          <div className="mt-3 grid gap-2">
-            {phone && (
-              <a
-                href={`tel:${phone}`}
-                onClick={closeMobileMenu}
-                className="inline-flex items-center justify-center gap-2 rounded-[8px] border border-[#B22830] bg-[#B22830] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white shadow-sm transition hover:border-[#8A1F26] hover:bg-[#8A1F26]"
-              >
-                <Phone size={17} />
-                Gọi quán
-              </a>
-            )}
+                <div className="mt-3 grid gap-2">
+                {phone && (
+                    <a
+                    href={`tel:${phone}`}
+                    onClick={closeMobileMenu}
+                    className="inline-flex items-center justify-center gap-2 rounded-[8px] border border-[#B22830] bg-[#B22830] px-4 py-3 text-sm font-black uppercase tracking-[0.08em] !text-white shadow-sm transition hover:border-[#8A1F26] hover:bg-[#8A1F26] hover:!text-white"
+                    >
+                    <Phone size={17} className="text-white" />
+                    <span className="text-white">Gọi quán</span>
+                    </a>
+                )}
 
             {googleMapUrl && (
               <a

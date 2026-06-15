@@ -7,10 +7,10 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  Newspaper,
   Settings,
   Soup,
   X,
-  Newspaper, // <-- Thêm icon cho phần Bản tin
 } from "lucide-react";
 
 import { useAuth } from "../hooks/useAuth";
@@ -39,7 +39,7 @@ const navItems = [
     icon: Megaphone,
   },
   {
-    to: "/admin/posts", // <-- Thêm menu quản lý Bản tin
+    to: "/admin/posts",
     label: "Bản tin",
     shortLabel: "Bản tin",
     description: "Bài đăng của quán",
@@ -57,7 +57,7 @@ const navItems = [
 function getPageTitle(pathname) {
   if (pathname.startsWith("/admin/menu")) return "Quản lý menu";
   if (pathname.startsWith("/admin/promotions")) return "Quản lý khuyến mãi";
-  if (pathname.startsWith("/admin/posts")) return "Bản tin quán"; // <-- Thêm title cho trang posts
+  if (pathname.startsWith("/admin/posts")) return "Bản tin quán";
   if (pathname.startsWith("/admin/settings")) return "Cài đặt quán";
   return "Tổng quan";
 }
@@ -109,7 +109,7 @@ export default function AdminLayout() {
 
   if (authLoading) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#F6F7F9] px-4">
+      <main className="grid min-h-[100dvh] place-items-center bg-[#F6F7F9] px-4">
         <div className="w-full max-w-sm rounded-[14px] border border-neutral-200 bg-white p-8 text-center shadow-sm">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-neutral-200 border-t-neutral-950" />
 
@@ -130,7 +130,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9] text-neutral-950">
+    <div className="min-h-[100dvh] bg-[#F6F7F9] text-neutral-950">
       <DesktopSidebar
         user={user}
         shop={shop}
@@ -150,7 +150,7 @@ export default function AdminLayout() {
         />
       )}
 
-      <div className="lg:pl-[280px]">
+      <div className="min-h-[100dvh] lg:pl-[280px]">
         <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur-xl">
           <div className="flex h-16 items-center justify-between gap-3 px-3 sm:px-6 lg:h-20 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
@@ -192,7 +192,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-3 pb-28 pt-4 sm:px-6 sm:pt-5 lg:px-8 lg:pb-8 lg:pt-8">
+        <main className="mx-auto min-h-[calc(100dvh-64px)] max-w-7xl px-3 pb-[calc(86px+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pt-5 lg:min-h-[calc(100dvh-80px)] lg:px-8 lg:pb-8 lg:pt-8">
           <Outlet />
         </main>
       </div>
@@ -246,7 +246,7 @@ function MobileSidebar({
         aria-label="Đóng menu admin"
       />
 
-      <aside className="relative flex h-full w-[92%] max-w-[360px] flex-col overflow-y-auto bg-white p-3 shadow-2xl sm:p-4">
+      <aside className="relative flex h-[100dvh] w-[92%] max-w-[360px] flex-col overflow-y-auto bg-white p-3 shadow-2xl sm:p-4">
         <div className="flex items-center justify-between gap-3 border-b border-neutral-200 pb-3">
           <p className="text-lg font-black text-neutral-950">Admin Panel</p>
 
@@ -264,7 +264,7 @@ function MobileSidebar({
           <BrandBox user={user} shop={shop} compact />
         </div>
 
-        <nav className="mt-4 space-y-2">
+        <nav className="mt-4 space-y-2 pb-4">
           {navItems.map((item) => (
             <SidebarLink key={item.to} item={item} onClick={onClose} />
           ))}
@@ -297,6 +297,7 @@ function HeaderPublicButton({ publicPath, shopLoading }) {
         aria-label="Đang tải link menu"
       >
         <Loader2 size={17} className="animate-spin" />
+
         <span className="hidden text-sm font-black sm:inline">
           Đang tải link
         </span>
@@ -312,6 +313,7 @@ function HeaderPublicButton({ publicPath, shopLoading }) {
         aria-label="Tạo slug menu"
       >
         <Settings size={17} />
+
         <span className="hidden text-sm font-black sm:inline">
           Tạo slug menu
         </span>
@@ -328,6 +330,7 @@ function HeaderPublicButton({ publicPath, shopLoading }) {
       aria-label="Xem menu khách hàng"
     >
       <ExternalLink size={17} />
+
       <span className="hidden text-sm font-black sm:inline">Xem menu</span>
     </Link>
   );
@@ -374,9 +377,8 @@ function PublicMenuButton({ publicPath, shopLoading }) {
 
 function MobileBottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:hidden">
-      {/* Đổi grid-cols-4 thành grid-cols-5 để hiển thị đủ 5 nút */}
-      <div className="grid grid-cols-5 gap-1">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:hidden">
+      <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -386,20 +388,34 @@ function MobileBottomNav() {
               to={item.to}
               className={({ isActive }) =>
                 [
-                  "flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-[10px] px-1 text-[10px] font-black transition",
+                  "group flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-[10px] px-1 text-[10px] font-black transition",
                   isActive
-                    ? "bg-neutral-950 text-white"
-                    : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950",
+                    ? "bg-neutral-100 text-neutral-950"
+                    : "bg-transparent text-neutral-500 hover:bg-neutral-50 hover:text-neutral-950",
                 ].join(" ")
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon size={19} />
-                  <span className="line-clamp-1">{item.shortLabel}</span>
-                  {isActive && (
-                    <span className="h-1 w-4 rounded-full bg-white/70" />
-                  )}
+                  <span
+                    className={[
+                      "grid h-8 w-8 place-items-center rounded-[8px] transition",
+                      isActive
+                        ? "bg-neutral-950 text-white shadow-sm"
+                        : "bg-transparent text-neutral-500 group-hover:bg-white group-hover:text-neutral-950",
+                    ].join(" ")}
+                  >
+                    <Icon size={18} />
+                  </span>
+
+                  <span
+                    className={[
+                      "line-clamp-1 max-w-full leading-none",
+                      isActive ? "text-neutral-950" : "text-neutral-500",
+                    ].join(" ")}
+                  >
+                    {item.shortLabel}
+                  </span>
                 </>
               )}
             </NavLink>
