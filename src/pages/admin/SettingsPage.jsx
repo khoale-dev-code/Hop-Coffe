@@ -13,7 +13,7 @@ import {
   Upload,
 } from "lucide-react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-
+import { uploadImageToCloudinary } from "../../services/cloudinaryService";
 import { storage } from "../../lib/firebase";
 
 import {
@@ -58,17 +58,8 @@ function cleanFileName(name = "image") {
 }
 
 async function uploadShopImage(shopId, file, type = "image") {
-  if (!shopId || !file) return "";
-
-  const fileName = `${Date.now()}-${cleanFileName(file.name)}`;
-
-  const fileRef = ref(storage, `shops/${shopId}/settings/${type}/${fileName}`);
-
-  await uploadBytes(fileRef, file);
-
-  return getDownloadURL(fileRef);
+  return uploadImageToCloudinary(file, `hop-cafe/${shopId}/settings/${type}`);
 }
-
 export default function SettingsPage() {
   const { user } = useAuth();
 

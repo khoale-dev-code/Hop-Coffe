@@ -23,8 +23,8 @@ import {
   getItems,
   reorderItems,
   updateItem,
-  uploadItemImage,
 } from "../../services/itemService";
+import { uploadMediaFilesToCloudinary } from "../../services/cloudinaryService";
 
 import {
   createEmptyItemForm,
@@ -36,6 +36,101 @@ import {
   normalizeSizes,
   parseTags,
 } from "../../utils/admin/menuItemUtils";
+
+function getImageFiles(imageFile) {
+  if (!imageFile) return [];
+
+  if (Array.isArray(imageFile)) {
+    return imageFile.filter(Boolean);
+  }
+
+  if (
+    typeof FileList !== "undefined" &&
+    imageFile instanceof FileList
+  ) {
+    return Array.from(imageFile).filter(Boolean);
+  }
+
+  return [imageFile];
+}
+
+function inferMediaTypeFromUrl(url = "") {
+  const cleanUrl = String(url).toLowerCase().split("?")[0];
+
+  if (
+    cleanUrl.endsWith(".mp4") ||
+    cleanUrl.endsWith(".webm") ||
+    cleanUrl.endsWith(".mov") ||
+    cleanUrl.endsWith(".m4v")
+  ) {
+    return "video";
+  }
+
+  return "image";
+}
+
+function normalizeItemImages(images = []) {
+  if (!Array.isArray(images)) return [];
+
+  return images
+    .map((image, index) => {
+      if (typeof image === "string") {
+        return {
+          url: image,
+          type: inferMediaTypeFromUrl(image),
+          name: `Media ${index + 1}`,
+          mimeType: "",
+          size: 0,
+          publicId: "",
+        };
+      }
+
+      return {
+        url: image?.url || "",
+        type: image?.type || inferMediaTypeFromUrl(image?.url || ""),
+        name: image?.name || `Media ${index + 1}`,
+        mimeType: image?.mimeType || "",
+        size: Number(image?.size || 0),
+        publicId: image?.publicId || "",
+        width: Number(image?.width || 0),
+        height: Number(image?.height || 0),
+      };
+    })
+    .filter((image) => image.url);
+}
+
+function getPrimaryMediaUrl(images = []) {
+  const normalizedImages = normalizeItemImages(images);
+
+  return (
+    normalizedImages.find((image) => image.type === "image")?.url ||
+    normalizedImages[0]?.url ||
+    ""
+  );
+}
+
+function mergeMainUrlIntoImages(imageUrl, images = []) {
+  const cleanUrl = imageUrl?.trim() || "";
+  const normalizedImages = normalizeItemImages(images);
+
+  if (!cleanUrl) return normalizedImages;
+
+  const exists = normalizedImages.some((image) => image.url === cleanUrl);
+
+  if (exists) return normalizedImages;
+
+  return [
+    {
+      url: cleanUrl,
+      type: inferMediaTypeFromUrl(cleanUrl),
+      name: "Media chính",
+      mimeType: "",
+      size: 0,
+      publicId: "",
+    },
+    ...normalizedImages,
+  ];
+}
 
 export function useMenuItemsAdmin() {
   const [categories, setCategories] = useState([]);
@@ -168,16 +263,26 @@ export function useMenuItemsAdmin() {
   }, []);
 
   useEffect(() => {
-    if (!imageFile) {
-      setImagePreviewUrl(itemForm.imageUrl || "");
+    const files = getImageFiles(imageFile);
+
+    if (files.length === 0) {
+      const savedImages = normalizeItemImages(itemForm.images);
+      setImagePreviewUrl(itemForm.imageUrl || savedImages[0]?.url || "");
       return;
     }
 
-    const objectUrl = URL.createObjectURL(imageFile);
+    const firstFile = files[0];
+
+    if (!(firstFile instanceof Blob)) {
+      setImagePreviewUrl(itemForm.imageUrl || getPrimaryMediaUrl(itemForm.images));
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(firstFile);
     setImagePreviewUrl(objectUrl);
 
     return () => URL.revokeObjectURL(objectUrl);
-  }, [imageFile, itemForm.imageUrl]);
+  }, [imageFile, itemForm.imageUrl, itemForm.images]);
 
   function clearNotice() {
     setMessage("");
@@ -228,7 +333,10 @@ export function useMenuItemsAdmin() {
 
   function resetItemForm() {
     setEditingItemId(null);
-    setItemForm(createEmptyItemForm());
+    setItemForm({
+      ...createEmptyItemForm(),
+      images: [],
+    });
     setImageFile(null);
     setImagePreviewUrl("");
   }
@@ -356,11 +464,26 @@ export function useMenuItemsAdmin() {
       setItemSubmitting(true);
       clearNotice();
 
-      let imageUrl = itemForm.imageUrl.trim();
+      const filesToUpload = getImageFiles(imageFile);
 
-      if (imageFile) {
-        imageUrl = await uploadItemImage(DEFAULT_SHOP_ID, imageFile);
+      let finalImages = mergeMainUrlIntoImages(
+        itemForm.imageUrl || "",
+        itemForm.images || []
+      );
+
+      if (filesToUpload.length > 0) {
+        const uploadedImages = await uploadMediaFilesToCloudinary(
+          filesToUpload,
+          `hop-cafe/${DEFAULT_SHOP_ID}/items`
+        );
+
+        finalImages = [
+          ...normalizeItemImages(uploadedImages),
+          ...normalizeItemImages(finalImages),
+        ];
       }
+
+      const imageUrl = getPrimaryMediaUrl(finalImages);
 
       const payload = {
         name: itemForm.name,
@@ -368,6 +491,7 @@ export function useMenuItemsAdmin() {
         price: mainPrice,
         oldPrice: mainOldPrice,
         imageUrl,
+        images: finalImages,
         categoryId: itemForm.categoryId,
         isAvailable: itemForm.isAvailable,
         isFeatured: itemForm.isFeatured,
@@ -390,7 +514,10 @@ export function useMenuItemsAdmin() {
       await loadData();
     } catch (err) {
       console.error(err);
-      setError("Không thể lưu món.");
+      setError(
+        err?.message ||
+          "Không thể lưu món. Vui lòng kiểm tra Cloudinary hoặc dữ liệu món."
+      );
     } finally {
       setItemSubmitting(false);
     }
@@ -400,12 +527,16 @@ export function useMenuItemsAdmin() {
     setEditingItemId(item.id);
     setImageFile(null);
 
+    const itemImages = normalizeItemImages(item.images);
+    const imageUrl = item.imageUrl || getPrimaryMediaUrl(itemImages);
+
     setItemForm({
       name: item.name || "",
       description: item.description || "",
       price: item.price || "",
       oldPrice: item.oldPrice || "",
-      imageUrl: item.imageUrl || "",
+      imageUrl,
+      images: itemImages,
       categoryId: item.categoryId || "",
       isAvailable: item.isAvailable ?? true,
       isFeatured: item.isFeatured ?? false,

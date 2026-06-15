@@ -24,8 +24,9 @@ import {
   createPost,
   updatePost,
   deletePost,
-  uploadPostMedia,
 } from "../../services/postService";
+
+import { uploadMediaFilesToCloudinary } from "../../services/cloudinaryService";
 
 import { DEFAULT_SHOP_ID, getShopById } from "../../services/shopService";
 
@@ -288,10 +289,10 @@ export default function PostsPage() {
       const filesToUpload = buildUploadFiles(mediaDrafts);
       const urlMedia = buildUrlMedia(mediaDrafts);
 
-      if (filesToUpload.length > 0) {
-        const uploaded = await uploadPostMedia(DEFAULT_SHOP_ID, filesToUpload);
-        finalMedia.push(...uploaded);
-      }
+    if (filesToUpload.length > 0) {
+    const uploaded = await uploadMediaFilesToCloudinary(filesToUpload);
+    finalMedia.push(...uploaded);
+    }
 
       finalMedia.push(...urlMedia);
 
@@ -435,9 +436,9 @@ export default function PostsPage() {
       const urlMedia = buildUrlMedia(editMediaDrafts);
 
       if (filesToUpload.length > 0) {
-        const uploaded = await uploadPostMedia(DEFAULT_SHOP_ID, filesToUpload);
+        const uploaded = await uploadMediaFilesToCloudinary(filesToUpload);
         finalMedia.push(...uploaded);
-      }
+        }
 
       finalMedia.push(...urlMedia);
 

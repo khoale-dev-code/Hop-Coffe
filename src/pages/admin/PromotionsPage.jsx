@@ -19,6 +19,7 @@ import {
   ImagePlus,
   Link2,
   ListChecks,
+  Loader2,
   Megaphone,
   Play,
   PlusCircle,
@@ -35,8 +36,8 @@ import {
   deletePromotion,
   getPromotions,
   updatePromotion,
-  uploadPromotionMedia,
 } from "../../services/promotionService";
+import { uploadMediaFilesToCloudinary } from "../../services/cloudinaryService";
 
 const emptyForm = {
   title: "",
@@ -75,11 +76,11 @@ function createLocalId() {
 }
 
 function getFileType(file) {
-  if (file.type.startsWith("video/")) return "video";
+  if (file?.type?.startsWith("video/")) return "video";
   return "image";
 }
 
-function inferTypeFromUrl(url) {
+function inferTypeFromUrl(url = "") {
   const cleanUrl = url.toLowerCase().split("?")[0];
 
   if (
@@ -94,6 +95,15 @@ function inferTypeFromUrl(url) {
   return "image";
 }
 
+function isValidUrl(value = "") {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function getNameFromUrl(url) {
   try {
     const pathname = new URL(url).pathname;
@@ -106,17 +116,27 @@ function getNameFromUrl(url) {
 }
 
 function normalizePromotionMedia(promotion) {
-  if (Array.isArray(promotion.media) && promotion.media.length > 0) {
-    return promotion.media;
+  if (Array.isArray(promotion?.media) && promotion.media.length > 0) {
+    return promotion.media
+      .map((media) => ({
+        url: media?.url || "",
+        type: media?.type || inferTypeFromUrl(media?.url || ""),
+        name: media?.name || "Media",
+        mimeType: media?.mimeType || "",
+        size: Number(media?.size || 0),
+        publicId: media?.publicId || "",
+      }))
+      .filter((media) => media.url);
   }
 
-  if (promotion.imageUrl) {
+  if (promotion?.imageUrl) {
     return [
       {
         url: promotion.imageUrl,
         type: "image",
         name: "Ảnh khuyến mãi",
         mimeType: "image/*",
+        size: 0,
       },
     ];
   }
@@ -133,7 +153,16 @@ function promotionToMediaDrafts(promotion) {
     name: media.name || `Media ${index + 1}`,
     mimeType: media.mimeType || "",
     size: media.size || 0,
+    publicId: media.publicId || "",
   }));
+}
+
+function revokeDraftUrls(mediaDrafts = []) {
+  mediaDrafts.forEach((draft) => {
+    if (draft.source === "file" && draft.url) {
+      URL.revokeObjectURL(draft.url);
+    }
+  });
 }
 
 export default function PromotionsPage() {
@@ -175,6 +204,11 @@ export default function PromotionsPage() {
 
   useEffect(() => {
     loadPromotions();
+
+    return () => {
+      revokeDraftUrls(mediaDrafts);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function updateField(name, value) {
@@ -202,6 +236,8 @@ export default function PromotionsPage() {
   }
 
   function resetForm() {
+    revokeDraftUrls(mediaDrafts);
+
     setForm(emptyForm);
     setUrlForm(emptyUrlForm);
     setMediaDrafts([]);
@@ -209,6 +245,8 @@ export default function PromotionsPage() {
   }
 
   function handleEdit(promotion) {
+    revokeDraftUrls(mediaDrafts);
+
     setEditingId(promotion.id);
     setUrlForm(emptyUrlForm);
     setMediaDrafts(promotionToMediaDrafts(promotion));
@@ -261,6 +299,11 @@ export default function PromotionsPage() {
       return;
     }
 
+    if (!isValidUrl(url)) {
+      setError("Link media chưa hợp lệ. Vui lòng dùng link bắt đầu bằng http hoặc https.");
+      return;
+    }
+
     const type = urlForm.type || inferTypeFromUrl(url);
     const name = urlForm.name.trim() || getNameFromUrl(url);
 
@@ -282,9 +325,15 @@ export default function PromotionsPage() {
   }
 
   function handleRemoveMedia(localId) {
-    setMediaDrafts((prev) =>
-      prev.filter((mediaDraft) => mediaDraft.localId !== localId)
-    );
+    setMediaDrafts((prev) => {
+      const removed = prev.find((mediaDraft) => mediaDraft.localId === localId);
+
+      if (removed?.source === "file" && removed?.url) {
+        URL.revokeObjectURL(removed.url);
+      }
+
+      return prev.filter((mediaDraft) => mediaDraft.localId !== localId);
+    });
   }
 
   function handleDragEnd(event) {
@@ -307,9 +356,10 @@ export default function PromotionsPage() {
 
     for (const draft of mediaDrafts) {
       if (draft.source === "file") {
-        const uploaded = await uploadPromotionMedia(DEFAULT_SHOP_ID, [
-          draft.file,
-        ]);
+        const uploaded = await uploadMediaFilesToCloudinary(
+          [draft.file],
+          `hop-cafe/${DEFAULT_SHOP_ID}/promotions`
+        );
 
         if (uploaded[0]) {
           finalMedia.push(uploaded[0]);
@@ -323,7 +373,8 @@ export default function PromotionsPage() {
         type: draft.type,
         name: draft.name || "Media",
         mimeType: draft.mimeType || "",
-        size: draft.size || 0,
+        size: Number(draft.size || 0),
+        publicId: draft.publicId || "",
       });
     }
 
@@ -370,7 +421,10 @@ export default function PromotionsPage() {
       await loadPromotions();
     } catch (err) {
       console.error(err);
-      setError("Không thể lưu chương trình khuyến mãi.");
+      setError(
+        err?.message ||
+          "Không thể lưu chương trình khuyến mãi. Vui lòng kiểm tra Cloudinary."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -493,8 +547,8 @@ function PageTopHeader({ loading, onRefresh, count }) {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
-            Upload file, thêm ảnh/video bằng link URL và kéo thả để đổi thứ tự
-            hiển thị trong popup khuyến mãi.
+            Upload ảnh/video lên Cloudinary, thêm media bằng URL và kéo thả để
+            đổi thứ tự hiển thị trong popup khuyến mãi.
           </p>
         </div>
 
@@ -647,18 +701,26 @@ function PromotionFormPanel({
             <Upload className="text-neutral-400" size={30} />
 
             <p className="mt-3 text-sm font-black text-neutral-950">
-              Upload ảnh hoặc video
+              Chọn ảnh hoặc video từ máy
             </p>
 
             <p className="mt-1 max-w-xs text-xs leading-5 text-neutral-400">
-              Hỗ trợ nhiều file: JPG, PNG, WEBP, MP4, WEBM.
+              File sẽ upload lên Cloudinary khi bấm lưu. Hỗ trợ JPG, PNG, WEBP,
+              MP4, WEBM.
             </p>
+
+            <span className="mt-3 inline-flex rounded-[8px] bg-neutral-950 px-4 py-2.5 text-xs font-black uppercase tracking-[0.08em] text-white">
+              Chọn file
+            </span>
 
             <input
               type="file"
               accept="image/*,video/*"
               multiple
-              onChange={(event) => onPickFiles(event.target.files)}
+              onChange={(event) => {
+                onPickFiles(event.target.files);
+                event.target.value = "";
+              }}
               className="hidden"
             />
           </label>
@@ -718,9 +780,14 @@ function PromotionFormPanel({
             disabled={submitting}
             className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-neutral-950 px-4 py-4 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[0_12px_26px_rgba(0,0,0,0.16)] transition hover:bg-neutral-800 disabled:opacity-60 sm:py-3 sm:shadow-none"
           >
-            <Save size={18} />
+            {submitting ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Save size={18} />
+            )}
+
             {submitting
-              ? "Đang lưu..."
+              ? "Đang upload Cloudinary..."
               : editingId
                 ? "Cập nhật khuyến mãi"
                 : "Thêm khuyến mãi"}
@@ -853,6 +920,7 @@ function PromotionsListPanel({
           {promotions.length === 0 && (
             <div className="rounded-[10px] border border-dashed border-neutral-200 bg-neutral-50 p-8 text-center">
               <Megaphone className="mx-auto text-neutral-400" />
+
               <p className="mt-3 text-sm font-bold text-neutral-500">
                 Chưa có chương trình khuyến mãi nào.
               </p>
@@ -1035,7 +1103,7 @@ function SortableMediaCard({ media, index, onRemove }) {
         <p className="mt-1 text-xs font-bold text-neutral-400">
           {media.type === "video" ? "Video" : "Hình ảnh"}
           {media.source === "file"
-            ? " · Chưa upload"
+            ? " · Chờ upload Cloudinary"
             : media.source === "url"
               ? " · URL"
               : " · Đã lưu"}
