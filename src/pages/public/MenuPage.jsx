@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useShopMenu } from "../../hooks/useShopMenu";
@@ -13,7 +13,6 @@ import PromotionModal from "../../components/public/menu/PromotionModal";
 import PromotionStrip from "../../components/public/menu/PromotionStrip";
 import QuickActions from "../../components/public/menu/QuickActions";
 import ShopFooter from "../../components/public/menu/ShopFooter";
-
 import {
   LoadingScreen,
   StateBox,

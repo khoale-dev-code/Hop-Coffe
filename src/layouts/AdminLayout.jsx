@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
 import {
   ExternalLink,
@@ -10,6 +10,7 @@ import {
   Settings,
   Soup,
   X,
+  Newspaper, // <-- Thêm icon cho phần Bản tin
 } from "lucide-react";
 
 import { useAuth } from "../hooks/useAuth";
@@ -38,6 +39,13 @@ const navItems = [
     icon: Megaphone,
   },
   {
+    to: "/admin/posts", // <-- Thêm menu quản lý Bản tin
+    label: "Bản tin",
+    shortLabel: "Bản tin",
+    description: "Bài đăng của quán",
+    icon: Newspaper,
+  },
+  {
     to: "/admin/settings",
     label: "Cài đặt quán",
     shortLabel: "Cài đặt",
@@ -49,6 +57,7 @@ const navItems = [
 function getPageTitle(pathname) {
   if (pathname.startsWith("/admin/menu")) return "Quản lý menu";
   if (pathname.startsWith("/admin/promotions")) return "Quản lý khuyến mãi";
+  if (pathname.startsWith("/admin/posts")) return "Bản tin quán"; // <-- Thêm title cho trang posts
   if (pathname.startsWith("/admin/settings")) return "Cài đặt quán";
   return "Tổng quan";
 }
@@ -366,7 +375,8 @@ function PublicMenuButton({ publicPath, shopLoading }) {
 function MobileBottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:hidden">
-      <div className="grid grid-cols-4 gap-1">
+      {/* Đổi grid-cols-4 thành grid-cols-5 để hiển thị đủ 5 nút */}
+      <div className="grid grid-cols-5 gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
 

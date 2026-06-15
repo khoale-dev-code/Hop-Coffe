@@ -12,6 +12,7 @@ import {
   Loader2,
   MapPin,
   Megaphone,
+  Newspaper,
   Phone,
   RefreshCw,
   Settings,
@@ -23,6 +24,7 @@ import { getShopById, DEFAULT_SHOP_ID } from "../../services/shopService";
 import { getCategories } from "../../services/categoryService";
 import { getItems } from "../../services/itemService";
 import { getPromotions } from "../../services/promotionService";
+import { getPosts } from "../../services/postService";
 
 function formatPrice(value) {
   return Number(value || 0).toLocaleString("vi-VN") + "đ";
@@ -52,6 +54,7 @@ export default function DashboardPage() {
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
   const [promotions, setPromotions] = useState([]);
+  const [posts, setPosts] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,6 +74,9 @@ export default function DashboardPage() {
     const activePromotions = promotions.filter(
       (promotion) => promotion.isActive !== false
     );
+    const activePosts = posts.filter(
+      (post) => post.isActive !== false
+    );
 
     return {
       categoryCount: categories.length,
@@ -81,8 +87,10 @@ export default function DashboardPage() {
       featuredCount: featuredItems.length,
       promotionCount: promotions.length,
       activePromotionCount: activePromotions.length,
+      postCount: posts.length,
+      activePostCount: activePosts.length,
     };
-  }, [categories, items, promotions]);
+  }, [categories, items, promotions, posts]);
 
   const recentItems = useMemo(() => {
     return [...items]
@@ -135,18 +143,20 @@ export default function DashboardPage() {
 
       setError("");
 
-      const [shopData, categoriesData, itemsData, promotionsData] =
+      const [shopData, categoriesData, itemsData, promotionsData, postsData] =
         await Promise.all([
           getShopById(DEFAULT_SHOP_ID),
           getCategories(DEFAULT_SHOP_ID),
           getItems(DEFAULT_SHOP_ID),
           getPromotions(DEFAULT_SHOP_ID).catch(() => []),
+          getPosts(DEFAULT_SHOP_ID).catch(() => []),
         ]);
 
       setShop(shopData);
       setCategories(categoriesData);
       setItems(itemsData);
       setPromotions(promotionsData);
+      setPosts(postsData);
     } catch (err) {
       console.error(err);
       setError("Không thể tải dữ liệu tổng quan.");
@@ -245,7 +255,7 @@ export default function DashboardPage() {
 
       {shop && !shop.isPublished && <UnpublishedNotice />}
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
           icon={Folder}
           label="Danh mục"
@@ -276,6 +286,14 @@ export default function DashboardPage() {
           value={stats.promotionCount}
           highlight={`${stats.activePromotionCount} đang bật`}
           description="Banner ưu đãi ở trang khách"
+        />
+
+        <StatCard
+          icon={Newspaper}
+          label="Bản tin"
+          value={stats.postCount}
+          highlight={`${stats.activePostCount} đang bật`}
+          description="Bài viết hiển thị trên blog"
         />
       </section>
 
@@ -575,6 +593,12 @@ function QuickActionsCard({ publicPath }) {
       icon: Megaphone,
     },
     {
+      to: "/admin/posts",
+      title: "Bản tin quán",
+      description: "Đăng bài viết, thông báo mới",
+      icon: Newspaper,
+    },
+    {
       to: "/admin/settings",
       title: "Cài đặt quán",
       description: "Logo, ảnh bìa, số điện thoại, bản đồ",
@@ -754,8 +778,8 @@ function DashboardSkeleton() {
     <div className="space-y-5 sm:space-y-6">
       <div className="h-36 animate-pulse rounded-[12px] bg-white" />
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, index) => (
           <div
             key={index}
             className="h-36 animate-pulse rounded-[12px] bg-white"
