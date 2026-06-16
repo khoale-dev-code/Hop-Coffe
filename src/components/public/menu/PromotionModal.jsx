@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
-import { CalendarDays, Coffee, X } from "lucide-react";
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { CalendarDays, Coffee, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn, getPromotionMedia } from "./publicMenuUtils";
 
 export default function PromotionModal({ promotion, onClose }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -11,13 +14,10 @@ export default function PromotionModal({ promotion, onClose }) {
 
   useEffect(() => {
     if (!promotion) return;
-
     const previousOverflow = document.body.style.overflow;
-
+    
     function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        onClose();
-      }
+      if (event.key === "Escape") onClose();
     }
 
     document.body.style.overflow = "hidden";
@@ -32,213 +32,226 @@ export default function PromotionModal({ promotion, onClose }) {
   if (!promotion) return null;
 
   const mediaList = getPromotionMedia(promotion);
-  const activeMedia = mediaList[activeIndex] || mediaList[0];
+
+  // Xử lý đồng bộ khi vuốt ngang
+  const handleScroll = (e) => {
+    const container = e.target;
+    const scrollPosition = container.scrollLeft;
+    const slideWidth = container.clientWidth;
+    const newIndex = Math.round(scrollPosition / slideWidth);
+
+    if (newIndex !== activeIndex) {
+      setActiveIndex(newIndex);
+    }
+  };
+
+  // Cuộn đến ảnh cụ thể (dành cho nút bấm)
+  const scrollToSlide = (index) => {
+    setActiveIndex(index);
+    if (scrollRef.current) {
+      const slideWidth = scrollRef.current.clientWidth;
+      scrollRef.current.scrollTo({
+        left: slideWidth * index,
+        behavior: "smooth",
+      });
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-0 py-0 backdrop-blur-sm sm:grid sm:place-items-center sm:px-5 sm:py-6">
+    <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm transition-all animate-in fade-in duration-300">
+      {/* Vùng nền bên ngoài: Bấm để đóng */}
       <button
         type="button"
         onClick={onClose}
-        className="absolute inset-0 cursor-default"
+        className="absolute inset-0 w-full cursor-default"
         aria-label="Đóng khuyến mãi"
       />
 
-      <div className="relative z-10 max-h-[94vh] w-full overflow-hidden rounded-t-[16px] bg-white shadow-2xl sm:max-w-5xl sm:rounded-[10px]">
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur-xl sm:hidden">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#7CAEB8]">
-              Chi tiết khuyến mãi
-            </p>
-
-            <p className="line-clamp-1 text-sm font-black text-[#2F221C]">
-              {promotion.title}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-3 grid h-9 w-9 shrink-0 place-items-center rounded-[8px] bg-neutral-100 text-[#2F221C]"
-            aria-label="Đóng"
-          >
-            <X size={19} />
-          </button>
-        </div>
-
+      {/* CONTAINER CHÍNH: 
+        Mobile: Kéo từ dưới lên (Bottom Sheet), bo tròn cạnh trên.
+        Desktop: Kéo từ phải sang (Side Drawer), chiếm 480px chiều rộng.
+      */}
+      <div className="relative z-10 flex h-[92dvh] w-full flex-col self-end overflow-hidden rounded-t-[24px] bg-[#FDFDFD] shadow-2xl animate-in slide-in-from-bottom-full duration-400 ease-out sm:h-[100dvh] sm:w-[480px] sm:rounded-none sm:slide-in-from-right-full">
+        
+        {/* NÚT ĐÓNG LƠ LỬNG GÓC TRÊN CÙNG */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-20 hidden h-10 w-10 place-items-center rounded-[6px] bg-white text-[#2F221C] shadow-md ring-1 ring-neutral-200 transition hover:bg-neutral-50 sm:grid"
+          className="absolute right-4 top-4 z-50 grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all hover:bg-black/60 hover:scale-105 active:scale-95"
           aria-label="Đóng"
         >
-          <X size={20} />
+          <X size={18} strokeWidth={2.5} />
         </button>
 
-        <div className="max-h-[94vh] overflow-y-auto sm:max-h-[92vh]">
-          <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="border-b border-neutral-200 bg-white p-3 sm:p-5 lg:border-b-0 lg:border-r lg:p-6">
-              <div className="overflow-hidden rounded-[8px] border border-neutral-200 bg-white">
-                <PromotionMediaFrame media={activeMedia} mode="modal" />
+        {/* 1. KHU VỰC MEDIA (TRÀN VIỀN KÉO VUỐT) */}
+        <div className="relative w-full shrink-0 bg-neutral-100 sm:h-[45vh]">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {mediaList.map((media, index) => (
+              <div key={`${media.url}-${index}`} className="w-full shrink-0 snap-center">
+                <PromotionMediaFrame 
+                  media={media} 
+                  isActive={activeIndex === index} 
+                />
               </div>
+            ))}
+          </div>
 
-              {mediaList.length > 1 && (
-                <div className="hop-hide-scroll mt-3 flex gap-2 overflow-x-auto pb-1">
-                  {mediaList.map((media, index) => (
-                    <button
-                      key={`${media.url}-${index}`}
-                      type="button"
-                      onClick={() => setActiveIndex(index)}
-                      className={cn(
-                        "h-14 w-20 shrink-0 overflow-hidden rounded-[6px] border bg-white transition sm:h-20 sm:w-28",
-                        activeIndex === index
-                          ? "border-[#6B4B3E] ring-2 ring-[#6B4B3E]/15"
-                          : "border-neutral-200 hover:border-[#C9A58D]"
-                      )}
-                    >
-                      <PromotionMediaFrame media={media} mode="thumb" />
-                    </button>
-                  ))}
-                </div>
-              )}
+          {/* Dấu chấm điều hướng (Dot Indicators) thay cho Thumbnails */}
+          {mediaList.length > 1 && (
+            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 px-4 z-20">
+              {mediaList.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => scrollToSlide(index)}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-300",
+                    activeIndex === index 
+                      ? "w-6 bg-white shadow-sm" 
+                      : "w-1.5 bg-white/50 hover:bg-white/80"
+                  )}
+                  aria-label={`Chuyển đến ảnh ${index + 1}`}
+                />
+              ))}
             </div>
+          )}
 
-            <div className="bg-white p-4 pb-6 sm:p-7">
-              <div className="hidden sm:block">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#7CAEB8]">
-                  Chi tiết khuyến mãi
-                </p>
-
-                <h3 className="mt-3 pr-8 text-3xl font-black leading-tight tracking-tight text-[#2F221C]">
-                  {promotion.title}
-                </h3>
-              </div>
-
-              {promotion.subtitle && (
-                <p className="mt-1 text-base font-bold leading-7 text-[#6B4B3E] sm:mt-3">
-                  {promotion.subtitle}
-                </p>
-              )}
-
-              {promotion.description && (
-                <div className="mt-4 rounded-[8px] border border-neutral-200 bg-white p-4 sm:mt-5">
-                  <p className="font-black text-[#2F221C]">Nội dung ưu đãi</p>
-
-                  <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#73584D]">
-                    {promotion.description}
-                  </p>
-                </div>
-              )}
-
-              {(promotion.startAt || promotion.endAt) && (
-                <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2">
-                  {promotion.startAt && (
-                    <InfoBox label="Bắt đầu" value={promotion.startAt} />
-                  )}
-
-                  {promotion.endAt && (
-                    <InfoBox label="Kết thúc" value={promotion.endAt} />
-                  )}
-                </div>
-              )}
-
-              {promotion.terms && (
-                <div className="mt-4 rounded-[8px] border border-neutral-200 bg-white p-4 sm:mt-5">
-                  <p className="font-black text-[#2F221C]">
-                    Điều kiện áp dụng
-                  </p>
-
-                  <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#73584D]">
-                    {promotion.terms}
-                  </p>
-                </div>
-              )}
-
+          {/* Nút điều hướng Trái/Phải (Chỉ hiện trên Desktop khi hover) */}
+          {mediaList.length > 1 && (
+            <div className="absolute inset-y-0 left-0 right-0 hidden items-center justify-between px-3 pointer-events-none opacity-0 transition-opacity duration-300 hover:opacity-100 sm:flex">
               <button
-                type="button"
-                onClick={onClose}
-                className="mt-6 w-full rounded-[8px] bg-[#2F221C] px-5 py-4 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#6B4B3E] sm:mt-7"
+                onClick={() => scrollToSlide(Math.max(0, activeIndex - 1))}
+                disabled={activeIndex === 0}
+                className="pointer-events-auto grid h-8 w-8 place-items-center rounded-full bg-white/80 text-black shadow-sm backdrop-blur transition hover:bg-white hover:scale-105 disabled:opacity-0"
               >
-                Đã hiểu
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={() => scrollToSlide(Math.min(mediaList.length - 1, activeIndex + 1))}
+                disabled={activeIndex === mediaList.length - 1}
+                className="pointer-events-auto grid h-8 w-8 place-items-center rounded-full bg-white/80 text-black shadow-sm backdrop-blur transition hover:bg-white hover:scale-105 disabled:opacity-0"
+              >
+                <ChevronRight size={18} />
               </button>
             </div>
-          </div>
+          )}
         </div>
+
+        {/* 2. KHU VỰC NỘI DUNG (CUỘN DỌC) */}
+        <div className="relative flex-1 overflow-y-auto px-5 py-6 sm:px-8 sm:py-8 [scrollbar-width:thin]">
+          {/* Nhãn tag nổi */}
+          {promotion.subtitle ? (
+            <span className="inline-block rounded-full bg-neutral-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#6B4B3E]">
+              {promotion.subtitle}
+            </span>
+          ) : (
+            <span className="inline-block rounded-full bg-[#E8F0F2] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#4E8791]">
+              Khuyến mãi
+            </span>
+          )}
+
+          <h2 className="mt-4 text-2xl font-black leading-[1.3] tracking-tight text-[#2F221C] sm:text-3xl">
+            {promotion.title}
+          </h2>
+
+          {(promotion.startAt || promotion.endAt) && (
+            <div className="mt-5 flex flex-wrap gap-3">
+              {promotion.startAt && (
+                <InfoBadge label="Từ" value={promotion.startAt} />
+              )}
+              {promotion.endAt && (
+                <InfoBadge label="Đến" value={promotion.endAt} />
+              )}
+            </div>
+          )}
+
+          {promotion.description && (
+            <div className="mt-6 border-t border-neutral-100 pt-6">
+              <p className="font-black text-[#2F221C]">Nội dung ưu đãi</p>
+              <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-[#5A463E]">
+                {promotion.description}
+              </p>
+            </div>
+          )}
+
+          {promotion.terms && (
+            <div className="mt-6 rounded-[12px] bg-neutral-50 p-4">
+              <p className="font-black text-[#2F221C]">Điều kiện áp dụng</p>
+              <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-[#73584D]">
+                {promotion.terms}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* 3. KHU VỰC NÚT BẤM (Ghim cố định ở đáy) */}
+        <div className="shrink-0 border-t border-neutral-100 bg-white p-4 pb-[max(env(safe-area-inset-bottom),1rem)] shadow-[0_-4px_20px_rgba(0,0,0,0.03)] sm:px-8">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex w-full items-center justify-center rounded-[12px] bg-[#2F221C] px-5 py-4 text-[15px] font-black uppercase tracking-[0.12em] text-white transition-all hover:bg-[#4A372D] active:scale-[0.98]"
+          >
+            Tôi đã hiểu
+          </button>
+        </div>
+        
       </div>
     </div>
   );
 }
 
-function PromotionMediaFrame({ media, mode = "banner" }) {
-  const wrapperClass =
-    mode === "modal"
-      ? "min-h-[230px] max-h-[64vh] sm:min-h-[360px] sm:max-h-[68vh]"
-      : mode === "thumb"
-        ? "h-full"
-        : "min-h-[170px] max-h-[340px]";
-
-  const mediaClass =
-    mode === "thumb"
-      ? "h-full w-full object-contain p-1"
-      : mode === "modal"
-        ? "max-h-[64vh] w-full object-contain p-3 sm:max-h-[68vh] sm:p-5"
-        : "max-h-[340px] w-full object-contain p-2";
-
+// Tối ưu lại Media Frame tràn viền
+function PromotionMediaFrame({ media, isActive = false }) {
   if (!media) {
     return (
-      <div
-        className={cn(
-          "grid place-items-center bg-white text-[#6B4B3E]",
-          wrapperClass
-        )}
-      >
-        <Coffee size={mode === "thumb" ? 24 : 48} />
+      <div className="flex aspect-square sm:aspect-auto sm:h-[45vh] w-full flex-col items-center justify-center bg-neutral-100 text-[#C9A58D]">
+        <Coffee size={40} strokeWidth={1.5} />
+        <span className="mt-3 text-xs font-bold uppercase tracking-widest opacity-60">No Media</span>
       </div>
     );
   }
 
   if (media.type === "video") {
     return (
-      <div className={cn("grid place-items-center bg-black", wrapperClass)}>
+      <div className="relative aspect-square sm:aspect-auto sm:h-[45vh] w-full bg-black">
         <video
           src={media.url}
-          controls={mode === "modal"}
-          muted={mode !== "modal"}
+          controls
+          muted={false}
+          autoPlay={isActive}
           playsInline
           preload="metadata"
-          className={
-            mode === "thumb"
-              ? "h-full w-full object-cover"
-              : "max-h-[64vh] w-full object-contain sm:max-h-[68vh]"
-          }
+          className="h-full w-full object-cover"
         />
       </div>
     );
   }
 
   return (
-    <div className={cn("grid place-items-center bg-white", wrapperClass)}>
+    <div className="relative aspect-square sm:aspect-auto sm:h-[45vh] w-full bg-white">
       <img
         src={media.url}
-        alt={media.name || "Khuyến mãi"}
+        alt={media.name || "Banner"}
         loading="eager"
-        className={mediaClass}
+        className="h-full w-full object-cover"
       />
+      {/* Lớp gradient mờ ở đáy ảnh để làm nổi bật dấu chấm phân trang */}
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
     </div>
   );
 }
 
-function InfoBox({ label, value }) {
+function InfoBadge({ label, value }) {
   return (
-    <div className="rounded-[8px] border border-neutral-200 bg-white p-4">
-      <div className="flex items-center gap-2 text-[#7CAEB8]">
-        <CalendarDays size={16} />
-
-        <p className="text-xs font-black uppercase tracking-[0.14em]">
-          {label}
-        </p>
-      </div>
-
-      <p className="mt-2 font-black text-[#2F221C]">{value}</p>
+    <div className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-1.5 shadow-sm">
+      <CalendarDays size={14} className="text-[#C9A58D]" />
+      <p className="text-[12px] font-medium text-[#2F221C]">
+        <span className="font-bold mr-1 text-[#7CAEB8]">{label}:</span> 
+        {value}
+      </p>
     </div>
   );
 }

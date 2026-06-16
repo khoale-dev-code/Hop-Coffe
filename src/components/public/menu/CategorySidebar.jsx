@@ -14,126 +14,143 @@ export default function CategorySidebar({
   const stickyRef = useRef(null);
   const scrollRef = useRef(null);
 
-  // Ghi chiều cao thực vào CSS var để MenuToolbar tính top offset
   useEffect(() => {
-    const el = stickyRef.current;
-    if (!el) return;
-    const update = () =>
+    const element = stickyRef.current;
+    if (!element) return;
+
+    function updateHeight() {
       document.documentElement.style.setProperty(
         "--category-bar-h",
-        `${el.offsetHeight}px`
+        `${element.offsetHeight}px`
       );
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
+    }
+
+    updateHeight();
+
+    if (typeof ResizeObserver === "undefined") return;
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(element);
+
+    return () => resizeObserver.disconnect();
   }, []);
 
-  // Scroll pill active vào giữa khi activeCategory thay đổi,
-  // KHÔNG để browser tự scroll (tránh giật trang).
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
-    const active = container.querySelector('[data-active="true"]');
-    if (!active) return;
-    // scrollIntoView chỉ trong container, không ảnh hưởng window
-    const containerRect = container.getBoundingClientRect();
-    const activeRect = active.getBoundingClientRect();
-    const offset =
-      activeRect.left -
-      containerRect.left -
-      containerRect.width / 2 +
-      activeRect.width / 2;
-    container.scrollBy({ left: offset, behavior: "smooth" });
+
+    const activeButton = container.querySelector('[data-active="true"]');
+    if (!activeButton) return;
+
+    const scrollTarget =
+      activeButton.offsetLeft -
+      container.clientWidth / 2 +
+      activeButton.clientWidth / 2;
+
+    container.scrollTo({
+      left: scrollTarget,
+      behavior: "smooth",
+    });
   }, [activeCategory]);
 
   const categoryItems = [
-    { id: "all", name: "Tất cả", count: totalItems },
-    ...categories.map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-      count: countMap[cat.id] || 0,
+    {
+      id: "all",
+      name: "Tất cả",
+      count: totalItems,
+    },
+    ...categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      count: countMap[category.id] || 0,
     })),
   ];
 
   return (
     <>
-      {/* ── Mobile: sticky horizontal scroll bar ── */}
-      {/*
-        Dùng <div> thay <section> để tránh tạo thêm block context
-        làm layout shift khi re-render.
+      {/* MOBILE VIEW */}
+      {/* 1. Gộp lg:hidden vào chung thẻ sticky để tối ưu hiệu suất cuộn.
+        2. Thêm max-w-full, min-w-0 và overflow-hidden để chốt chặt chiều ngang, chống lỗi phình to đẩy chữ ra khỏi màn hình.
       */}
-      <div className="lg:hidden">
-        <div
-          ref={stickyRef}
-          className="sticky top-[64px] z-30 -mx-3 border-b border-neutral-200 bg-white/95 backdrop-blur-md sm:-mx-6"
-        >
-          {/* Header row */}
-          <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-3 sm:px-6">
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-neutral-200 bg-white text-[#6B4B3E] shadow-sm">
-                <Coffee size={14} aria-hidden="true" />
-              </div>
-              <p className="text-xs font-bold text-[#2F221C]">Danh mục</p>
+      <div
+        ref={stickyRef}
+        className="sticky top-[64px] z-30 lg:hidden w-full max-w-full min-w-0 overflow-hidden border-b border-neutral-200 bg-white/95 backdrop-blur-xl"
+      >
+        <div className="flex w-full items-center justify-between gap-2 px-4 pb-2 pt-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] border border-neutral-200 bg-white text-[#6B4B3E] shadow-sm">
+              <Coffee size={14} aria-hidden="true" />
             </div>
-            <span className="shrink-0 rounded-full bg-[#2F221C] px-2.5 py-1 text-[10px] font-bold text-white">
-              {totalItems} món
-            </span>
+
+            <div className="min-w-0">
+              <p className="text-xs font-black leading-4 text-[#2F221C]">
+                Danh mục
+              </p>
+              <p className="text-[10px] font-semibold leading-4 text-[#73584D]">
+                Vuốt để xem thêm
+              </p>
+            </div>
           </div>
 
-          {/* Pill scroll row */}
-          <div className="relative">
-            <div
-              ref={scrollRef}
-              // KHÔNG dùng role="tablist" ở đây vì nó khiến Safari
-              // tự scroll aria-selected element vào view (gây giật trang).
-              // Accessibility vẫn ổn vì mỗi button có aria-pressed.
-              className="hop-hide-scroll flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-3 sm:px-6"
-              aria-label="Lọc theo danh mục"
-            >
-              {categoryItems.map((cat) => (
-                <MobilePill
-                  key={cat.id}
-                  label={cat.name}
-                  count={cat.count}
-                  active={activeCategory === cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                />
-              ))}
-              <span className="shrink-0 select-none opacity-0" aria-hidden="true">
-                .
-              </span>
-            </div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-r from-transparent to-white/90" />
+          <span className="shrink-0 rounded-full bg-[#2F221C] px-2.5 py-1 text-[10px] font-black text-white">
+            {totalItems} món
+          </span>
+        </div>
+
+        <div className="relative w-full max-w-full min-w-0">
+          <div
+            ref={scrollRef}
+            className="relative flex w-full max-w-full min-w-0 gap-2 overflow-x-auto scroll-smooth px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ touchAction: "pan-x" }}
+            aria-label="Lọc theo danh mục"
+          >
+            {categoryItems.map((category) => (
+              <MobilePill
+                key={category.id}
+                label={category.name}
+                count={category.count}
+                active={activeCategory === category.id}
+                onClick={() => setActiveCategory(category.id)}
+              />
+            ))}
+            
+            <div className="w-1 shrink-0" aria-hidden="true" />
           </div>
+
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-white/95 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white/95 to-transparent" />
         </div>
       </div>
 
-      {/* ── Desktop: sticky left sidebar ── */}
+      {/* DESKTOP VIEW */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <div className="sticky top-24 overflow-hidden rounded-[14px] border border-neutral-200 bg-white shadow-sm">
           <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-4">
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-neutral-200 bg-neutral-50 text-[#6B4B3E]">
               <Coffee size={18} aria-hidden="true" />
             </div>
+
             <div className="min-w-0">
-              <p className="text-sm font-bold leading-5 text-[#2F221C]">Danh mục</p>
+              <p className="text-sm font-black leading-5 text-[#2F221C]">
+                Danh mục
+              </p>
               <p className="mt-0.5 text-[11px] font-medium text-[#73584D]">
                 Lọc theo nhóm sản phẩm
               </p>
             </div>
           </div>
+
           <nav
-            className="max-h-[calc(100dvh-200px)] space-y-1 overflow-y-auto p-2"
+            className="max-h-[calc(100dvh-200px)] space-y-1 overflow-y-auto p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label="Danh mục sản phẩm"
           >
-            {categoryItems.map((cat) => (
+            {categoryItems.map((category) => (
               <DesktopButton
-                key={cat.id}
-                label={cat.name}
-                count={cat.count}
-                active={activeCategory === cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                key={category.id}
+                label={category.name}
+                count={category.count}
+                active={activeCategory === category.id}
+                onClick={() => setActiveCategory(category.id)}
               />
             ))}
           </nav>
@@ -143,30 +160,26 @@ export default function CategorySidebar({
   );
 }
 
-/* ─────────────────────────────────────────
-   Mobile pill chip
-───────────────────────────────────────── */
 function MobilePill({ label, count, active, onClick }) {
   return (
     <button
       type="button"
-      // aria-pressed thay vì role="tab" + aria-selected
-      // → không trigger auto-scroll của browser
       aria-pressed={active}
-      data-active={active}
+      data-active={active ? "true" : "false"}
       onClick={onClick}
       className={cn(
-        "inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border",
-        "px-3 py-1.5 text-xs font-bold transition-all duration-150 active:scale-[0.97]",
+        "inline-flex min-h-9 shrink-0 whitespace-nowrap touch-manipulation select-none items-center gap-1.5 rounded-full border",
+        "px-3 py-1.5 text-xs font-black transition-all duration-150 active:scale-[0.97]",
         active
           ? "border-[#2F221C] bg-[#2F221C] text-white shadow-sm"
           : "border-neutral-200 bg-white text-[#6B4B3E] shadow-sm hover:border-[#C9A58D] hover:bg-[#FAF6F3]"
       )}
     >
-      <span className="max-w-[120px] truncate sm:max-w-[160px]">{label}</span>
+      <span>{label}</span>
+
       <span
         className={cn(
-          "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+          "rounded-full px-1.5 py-0.5 text-[10px] font-black",
           active ? "bg-white/20 text-white" : "bg-neutral-100 text-[#73584D]"
         )}
       >
@@ -176,9 +189,6 @@ function MobilePill({ label, count, active, onClick }) {
   );
 }
 
-/* ─────────────────────────────────────────
-   Desktop sidebar button
-───────────────────────────────────────── */
 function DesktopButton({ label, count, active, onClick }) {
   return (
     <button
@@ -187,16 +197,17 @@ function DesktopButton({ label, count, active, onClick }) {
       onClick={onClick}
       className={cn(
         "group flex min-h-[40px] w-full items-center justify-between gap-2 rounded-[10px] border",
-        "px-3 py-2 text-left text-sm font-bold transition-all duration-150",
+        "px-3 py-2 text-left text-sm font-black transition-all duration-150",
         active
           ? "border-[#2F221C] bg-[#2F221C] text-white"
           : "border-transparent bg-transparent text-[#6B4B3E] hover:border-neutral-200 hover:bg-[#FAF6F3]"
       )}
     >
       <span className="line-clamp-1 min-w-0">{label}</span>
+
       <span
         className={cn(
-          "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
+          "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-black",
           active ? "bg-white/20 text-white" : "bg-neutral-100 text-[#73584D]"
         )}
       >
@@ -204,4 +215,4 @@ function DesktopButton({ label, count, active, onClick }) {
       </span>
     </button>
   );
-}   
+}

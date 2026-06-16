@@ -53,7 +53,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  overflow-x: hidden;
+  /* FIX 1: Dùng clip thay vì hidden để không phá vỡ position: sticky trên mobile */
+  overflow-x: clip; 
   background: #ffffff;
   color: var(--hop-brown-dark);
 }
@@ -104,17 +105,14 @@ a {
    Client backgrounds
 ========================= */
 
-/* Nền chính client: trắng sạch */
 .hop-client-bg {
   background: #ffffff;
 }
 
-/* Nền trắng tuyệt đối */
 .hop-client-bg-white {
   background: #ffffff;
 }
 
-/* Nền trắng có glow rất nhẹ, dùng cho hero/banner nếu cần */
 .hop-client-bg-soft {
   background:
     radial-gradient(
@@ -143,23 +141,27 @@ a {
   display: none;
 }
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
+/* FIX 3: Chỉ hiển thị custom scrollbar trên thiết bị dùng chuột (Desktop).
+   Giữ nguyên scrollbar overlay tự nhiên của điện thoại để UX tốt hơn. */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
 
-::-webkit-scrollbar-track {
-  background: #ffffff;
-}
+  ::-webkit-scrollbar-track {
+    background: #ffffff;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: #d6c7bc;
-  border: 3px solid #ffffff;
-  border-radius: 999px;
-}
+  ::-webkit-scrollbar-thumb {
+    background: #d6c7bc;
+    border: 3px solid #ffffff;
+    border-radius: 999px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #bda796;
+  ::-webkit-scrollbar-thumb:hover {
+    background: #bda796;
+  }
 }
 
 /* =========================
@@ -192,7 +194,7 @@ a {
 }
 
 /* =========================
-   Hover helpers
+   Hover & Styles Helpers
 ========================= */
 
 .hop-card-hover {
@@ -203,21 +205,10 @@ a {
     background-color 0.25s ease;
 }
 
-.hop-card-hover:hover {
-  transform: translateY(-2px);
-  border-color: #c9a58d;
-  box-shadow: var(--hop-shadow-card);
-}
-
 .hop-button-dark {
   background: var(--hop-brown-dark);
   color: #ffffff;
   border: 1px solid var(--hop-brown-dark);
-}
-
-.hop-button-dark:hover {
-  background: var(--hop-brown);
-  border-color: var(--hop-brown);
 }
 
 .hop-button-outline {
@@ -226,9 +217,41 @@ a {
   border: 1px solid var(--hop-brown-dark);
 }
 
-.hop-button-outline:hover {
-  background: var(--hop-brown-dark);
-  color: #ffffff;
+.hop-product-card {
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  background: #ffffff;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+/* FIX 2: Bọc toàn bộ các trạng thái :hover vào media query này.
+   Đảm bảo trên Mobile khi bấm vào nút/card sẽ không bị dính (sticky) trạng thái hover. */
+@media (hover: hover) {
+  .hop-card-hover:hover {
+    transform: translateY(-2px);
+    border-color: #c9a58d;
+    box-shadow: var(--hop-shadow-card);
+  }
+
+  .hop-button-dark:hover {
+    background: var(--hop-brown);
+    border-color: var(--hop-brown);
+  }
+
+  .hop-button-outline:hover {
+    background: var(--hop-brown-dark);
+    color: #ffffff;
+  }
+
+  .hop-product-card:hover {
+    transform: translateY(-2px);
+    border-color: #c9a58d;
+    box-shadow: var(--hop-shadow-card);
+  }
 }
 
 /* =========================
@@ -314,23 +337,6 @@ textarea::placeholder {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.hop-product-card {
-  overflow: hidden;
-  border-radius: 8px;
-  border: 1px solid #e5e5e5;
-  background: #ffffff;
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease,
-    border-color 0.25s ease;
-}
-
-.hop-product-card:hover {
-  transform: translateY(-2px);
-  border-color: #c9a58d;
-  box-shadow: var(--hop-shadow-card);
 }
 
 /* =========================
