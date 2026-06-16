@@ -78,10 +78,10 @@ export default function ShopFooter({ shop }) {
   return (
     <footer
       id="about"
-      className="border-t border-neutral-200 bg-white px-4 pb-24 pt-8 text-neutral-900 sm:px-6 sm:pb-12 sm:pt-10 lg:px-8"
+      className="border-t border-neutral-200 bg-white px-3 pb-[calc(18px+env(safe-area-inset-bottom))] pt-6 text-neutral-900 sm:px-6 sm:pb-8 sm:pt-8 lg:px-8 lg:pb-10"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.25fr_0.875fr_0.875fr]">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.2fr_0.9fr_0.9fr]">
           <BrandCard
             shop={shop}
             shopName={shopName}
@@ -93,13 +93,13 @@ export default function ShopFooter({ shop }) {
           <SocialCard socials={allSocials} shopName={shopName} />
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-5">
-          <p className="text-xs font-bold text-neutral-400">
+        <div className="mt-4 flex flex-col gap-3 border-t border-neutral-200 pt-4 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:pt-5">
+          <p className="text-center text-xs font-bold text-neutral-400 sm:text-left">
             © {new Date().getFullYear()} {shopName}. All rights reserved.
           </p>
 
           <nav
-            className="flex flex-wrap items-center gap-2"
+            className="flex flex-wrap items-center justify-center gap-2 sm:justify-end"
             aria-label="Footer navigation"
           >
             <FooterLink href="#menu" label="Sản phẩm" />
@@ -107,11 +107,11 @@ export default function ShopFooter({ shop }) {
 
             <a
               href="#"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-black !text-white transition hover:bg-neutral-700 hover:!text-white active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-[9px] bg-neutral-900 px-3 py-2 text-xs font-black !text-white transition hover:bg-neutral-700 hover:!text-white active:scale-95"
               aria-label="Về đầu trang"
             >
               <ArrowUp size={13} aria-hidden="true" />
-              Về đầu trang
+              Về đầu
             </a>
           </nav>
         </div>
@@ -122,9 +122,9 @@ export default function ShopFooter({ shop }) {
 
 function BrandCard({ shop, shopName, description }) {
   return (
-    <Card className="sm:col-span-2 lg:col-span-1">
-      <div className="flex items-center gap-3.5">
-        <div className="grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+    <Card className="md:col-span-2 xl:col-span-1">
+      <div className="flex items-center gap-3">
+        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-[12px] border border-neutral-200 bg-white shadow-sm sm:h-[52px] sm:w-[52px]">
           {shop?.logoUrl ? (
             <img
               src={shop.logoUrl}
@@ -132,12 +132,12 @@ function BrandCard({ shop, shopName, description }) {
               className="h-full w-full object-contain p-1"
             />
           ) : (
-            <Coffee size={24} className="text-[#6B4B3E]" aria-hidden="true" />
+            <Coffee size={23} className="text-[#6B4B3E]" aria-hidden="true" />
           )}
         </div>
 
         <div className="min-w-0">
-          <h2 className="truncate text-[22px] font-black tracking-tight text-neutral-900">
+          <h2 className="truncate text-xl font-black tracking-tight text-neutral-900 sm:text-[22px]">
             {shopName}
           </h2>
 
@@ -147,33 +147,35 @@ function BrandCard({ shop, shopName, description }) {
         </div>
       </div>
 
-      <p className="mt-4 max-w-sm text-sm leading-7 text-neutral-500">
+      <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-500 sm:mt-4 sm:leading-7">
         {description}
       </p>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {shop?.phone && (
-          <a
-            href={`tel:${shop.phone}`}
-            className="inline-flex items-center justify-center gap-2 rounded-[9px] bg-[#B22830] px-4 py-2.5 text-sm font-black !text-white transition hover:bg-[#8A1F26] hover:!text-white active:scale-95"
-          >
-            <Phone size={16} aria-hidden="true" />
-            Gọi quán
-          </a>
-        )}
+      {(shop?.phone || shop?.googleMapUrl) && (
+        <div className="mt-4 grid gap-2 min-[420px]:grid-cols-2">
+          {shop?.phone && (
+            <a
+              href={`tel:${shop.phone}`}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[9px] bg-[#B22830] px-4 py-2.5 text-sm font-black !text-white transition hover:bg-[#8A1F26] hover:!text-white active:scale-95"
+            >
+              <Phone size={16} aria-hidden="true" />
+              Gọi quán
+            </a>
+          )}
 
-        {shop?.googleMapUrl && (
-          <a
-            href={shop.googleMapUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-[9px] border border-neutral-200 bg-white px-4 py-2.5 text-sm font-black text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-95"
-          >
-            <MapPin size={16} aria-hidden="true" />
-            Chỉ đường
-          </a>
-        )}
-      </div>
+          {shop?.googleMapUrl && (
+            <a
+              href={shop.googleMapUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[9px] border border-neutral-200 bg-white px-4 py-2.5 text-sm font-black text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-95"
+            >
+              <MapPin size={16} aria-hidden="true" />
+              Chỉ đường
+            </a>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
@@ -205,7 +207,7 @@ function ContactCard({ shop }) {
         )}
 
         {!hasContact && (
-          <p className="rounded-[10px] bg-neutral-100 p-3 text-sm leading-6 text-neutral-400">
+          <p className="rounded-[10px] bg-white p-3 text-sm leading-6 text-neutral-400 ring-1 ring-neutral-200">
             Thông tin liên hệ sẽ được cập nhật sớm.
           </p>
         )}
@@ -219,7 +221,7 @@ function SocialCard({ socials, shopName }) {
     <Card>
       <SectionTitle title={`Kết nối với ${shopName}`} />
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 grid gap-2 min-[420px]:grid-cols-2 md:grid-cols-1">
         {socials.map(({ key, href, icon, label, brandStyle }) => (
           <SocialLink
             key={key}
@@ -237,7 +239,7 @@ function SocialCard({ socials, shopName }) {
 function Card({ children, className = "" }) {
   return (
     <div
-      className={`rounded-[14px] border border-neutral-200 bg-neutral-50 p-4 transition hover:border-neutral-300 hover:bg-neutral-100/60 sm:p-5 ${className}`}
+      className={`rounded-[14px] border border-neutral-200 bg-neutral-50 p-3 transition hover:border-neutral-300 hover:bg-neutral-100/60 sm:p-4 lg:p-5 ${className}`}
     >
       {children}
     </div>
@@ -292,11 +294,11 @@ function SocialLink({ href, icon: Icon, label, brandStyle }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="group flex items-center justify-between gap-3 rounded-[10px] border border-neutral-200 bg-white px-3 py-2.5 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.98]"
+      className="group flex min-h-12 items-center justify-between gap-3 rounded-[10px] border border-neutral-200 bg-white px-3 py-2 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.98]"
     >
       <span className="flex min-w-0 items-center gap-2.5">
         <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white shadow-sm transition-transform group-hover:scale-110"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white shadow-sm transition-transform group-hover:scale-105"
           style={brandStyle}
         >
           <Icon className="h-[21px] w-[21px]" />
@@ -320,7 +322,7 @@ function FooterLink({ href, label }) {
   return (
     <a
       href={href}
-      className="rounded-lg bg-neutral-100 px-3 py-2 text-xs font-black text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
+      className="rounded-[9px] bg-neutral-100 px-3 py-2 text-xs font-black text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
     >
       {label}
     </a>

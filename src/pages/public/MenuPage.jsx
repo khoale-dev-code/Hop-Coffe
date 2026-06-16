@@ -90,11 +90,13 @@ export default function MenuPage() {
     );
   }, [activeCategory, visibleCategories]);
 
+  const shouldShowFeatured = activeCategory === "all" && !keyword.trim();
+
   if (loading) return <LoadingScreen />;
 
   if (error) {
     return (
-      <main className="grid min-h-screen place-items-center bg-white px-4">
+      <main className="grid min-h-[100dvh] place-items-center bg-white px-4">
         <StateBox title="Có lỗi xảy ra" description={error} />
       </main>
     );
@@ -102,7 +104,7 @@ export default function MenuPage() {
 
   if (!shop) {
     return (
-      <main className="grid min-h-screen place-items-center bg-white px-4">
+      <main className="grid min-h-[100dvh] place-items-center bg-white px-4">
         <StateBox
           title="Không tìm thấy menu"
           description="Menu chưa được public hoặc đường dẫn không đúng."
@@ -112,7 +114,7 @@ export default function MenuPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-[#2F221C]">
+    <main className="min-h-[100dvh] overflow-x-hidden bg-white text-[#2F221C]">
       <MenuHeader
         shop={shop}
         mobileOpen={mobileOpen}
@@ -128,31 +130,35 @@ export default function MenuPage() {
         onOpenPromotion={setSelectedPromotion}
       />
 
-      {activeCategory === "all" && !keyword.trim() && (
+      {shouldShowFeatured && (
         <FeaturedProducts items={featuredItems} shop={shop} />
       )}
 
       <section
         id="menu"
-        className="mx-auto max-w-7xl px-4 pb-10 pt-4 sm:px-6 lg:px-8"
+        className="mx-auto max-w-7xl scroll-mt-24 px-3 pb-8 pt-3 sm:px-6 sm:pb-10 sm:pt-4 lg:px-8 lg:pb-12"
       >
-        <div className="mb-5 flex flex-col justify-between gap-3 border-b border-[#EEE3D8] pb-5 lg:flex-row lg:items-end">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-[#7CAEB8]">
+        <div className="mb-3 border-b border-[#EEE3D8] pb-3 sm:mb-5 sm:pb-5 lg:flex lg:items-end lg:justify-between lg:gap-5">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#7CAEB8] sm:text-sm sm:tracking-[0.18em]">
               Danh sách sản phẩm
             </p>
 
-            <h2 className="mt-1 text-3xl font-black tracking-tight text-[#2F221C] sm:text-4xl">
+            <h2 className="mt-1 line-clamp-2 text-2xl font-black tracking-tight text-[#2F221C] sm:text-3xl lg:text-4xl">
               {activeCategoryName}
             </h2>
 
-            <p className="mt-2 text-sm font-medium text-[#73584D]">
-              Đang hiển thị {filteredItems.length}/{items.length} sản phẩm.
+            <p className="mt-1.5 text-sm font-medium leading-6 text-[#73584D]">
+              Đang hiển thị{" "}
+              <span className="font-black text-[#2F221C]">
+                {filteredItems.length}
+              </span>
+              /{items.length} sản phẩm.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
           <CategorySidebar
             categories={visibleCategories}
             activeCategory={activeCategory}
@@ -172,7 +178,7 @@ export default function MenuPage() {
               setActiveCategory={setActiveCategory}
             />
 
-            <div className="mt-5">
+            <div className="mt-3 sm:mt-5">
               <ProductGrid
                 items={filteredItems}
                 shop={shop}
