@@ -1,420 +1,477 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getPosts } from "../../../services/postService";
 import {
-  Coffee,
-  Play,
-  Newspaper,
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
+  Coffee, Loader2, Play,
+  ChevronLeft, ChevronRight, ArrowLeft, LayoutGrid,
 } from "lucide-react";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(raw) {
+function timeAgo(raw) {
   try {
-    return new Date(raw).toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
+    const diff = (Date.now() - new Date(raw)) / 1000;
+    if (diff < 60) return "vừa xong";
+    if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)} ngày trước`;
+    return new Date(raw).toLocaleDateString("vi-VN");
+  } catch { return ""; }
 }
 
-function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
+function useViewportWidth() {
+  const [w, setW] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 375
+  );
+  useEffect(() => {
+    const h = () => setW(window.innerWidth);
+    window.addEventListener("resize", h, { passive: true });
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  return w;
 }
 
-// ─── Media Lightbox ───────────────────────────────────────────────────────────
+function renderCaption(text) {
+  if (!text) return null;
+  return text.split(/(\s+)/).map((word, i) =>
+    word.startsWith("#")
+      ? <span key={i} style={{ color: "#5B7B8A", fontWeight: 500 }}>{word}</span>
+      : <span key={i}>{word}</span>
+  );
+}
 
-function MediaLightbox({ items, startIndex, onClose }) {
-  const [current, setCurrent] = useState(startIndex ?? 0);
-  const touchStartX = useRef(null);
-  const videoRef = useRef(null);
+// ─── Shared: Media Carousel ───────────────────────────────────────────────────
 
-  // Phím tắt & scroll lock
+function MediaCarousel({ media, mode = "modal" }) {
+  // mode: "modal" (desktop popup) | "page" (mobile full page)
+  const [idx, setIdx] = useState(0);
+  const total = media.length;
+  const cur   = media[idx];
+  const isMobilePage = mode === "page";
+
+  const prev = (e) => { e?.stopPropagation?.(); setIdx((i) => (i - 1 + total) % total); };
+  const next = (e) => { e?.stopPropagation?.(); setIdx((i) => (i + 1) % total); };
+
+  const wrapStyle = {
+    position: "relative",
+    width: "100%",
+    // page mode: full width square; modal mode: fill parent height
+    ...(isMobilePage
+      ? { aspectRatio: "1/1" }
+      : { height: "100%", flex: 1 }
+    ),
+    overflow: "hidden",
+    background: "#111",
+    flexShrink: 0,
+  };
+
+  return (
+    <div style={wrapStyle}>
+      {cur.type === "video" ? (
+        <video
+          key={cur.url}
+          src={cur.url}
+          controls autoPlay playsInline
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }}
+        />
+      ) : (
+        <img
+          key={cur.url}
+          src={cur.url}
+          alt={`Ảnh ${idx + 1}`}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          loading="lazy"
+        />
+      )}
+
+      {total > 1 && (
+        <>
+          <button onClick={prev} aria-label="Ảnh trước" style={{
+            position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+            width: 30, height: 30, borderRadius: "50%",
+            background: "rgba(255,255,255,0.85)", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2,
+          }}>
+            <ChevronLeft size={15} color="#222" />
+          </button>
+          <button onClick={next} aria-label="Ảnh tiếp" style={{
+            position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+            width: 30, height: 30, borderRadius: "50%",
+            background: "rgba(255,255,255,0.85)", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2,
+          }}>
+            <ChevronRight size={15} color="#222" />
+          </button>
+          <div style={{
+            position: "absolute", bottom: 10, left: 0, right: 0,
+            display: "flex", justifyContent: "center", gap: 5, zIndex: 2,
+          }}>
+            {media.map((_, i) => (
+              <button key={i} onClick={(e) => { e.stopPropagation?.(); setIdx(i); }}
+                aria-label={`Ảnh ${i + 1}`}
+                style={{
+                  width: 6, height: 6, borderRadius: "50%", padding: 0, border: "none", cursor: "pointer",
+                  background: i === idx ? "#fff" : "rgba(255,255,255,0.45)",
+                  transform: i === idx ? "scale(1.3)" : "scale(1)",
+                  transition: "all .15s",
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── MOBILE: Full-page post detail (slide in from right) ──────────────────────
+
+function MobilePostPage({ post, shop, onBack }) {
+  const hasMedia = post.media?.length > 0;
+  const shopHandle = shop?.username || shop?.name?.toLowerCase().replace(/\s+/g, "") || "café";
+
+  // Lock body scroll, handle Android back button
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") goPrev();
-      if (e.key === "ArrowRight") goNext();
+    // Push a history state so Android back button works
+    window.history.pushState({ postDetail: true }, "");
+    const onPop = () => onBack();
+    window.addEventListener("popstate", onPop);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("popstate", onPop);
     };
+  }, [onBack]);
+
+  const handleBack = () => {
+    // Go back in history (removes the state we pushed)
+    window.history.back();
+  };
+
+  return (
+    // Full-screen overlay that slides in from the right
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: "#fff",
+      display: "flex", flexDirection: "column",
+      overflowY: "auto",
+      overscrollBehavior: "none",
+      animation: "slideInRight .22s cubic-bezier(.22,1,.36,1)",
+    }}>
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: .6; }
+          to   { transform: translateX(0);    opacity: 1; }
+        }
+      `}</style>
+
+      {/* ── Top bar ── */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 10,
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 14px",
+        background: "#fff",
+        borderBottom: "0.5px solid #f0f0f0",
+      }}>
+        <button
+          onClick={handleBack}
+          aria-label="Quay lại"
+          style={{
+            width: 34, height: 34, borderRadius: "50%",
+            background: "none", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            marginLeft: -6,
+          }}
+        >
+          <ArrowLeft size={20} color="#111" />
+        </button>
+
+        {/* Avatar + handle */}
+        <div style={{
+          width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+          background: "#F5EBE0", border: "1px solid #E8D5C4",
+          display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+        }}>
+          {shop?.logoUrl
+            ? <img src={shop.logoUrl} alt={shop.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <Coffee size={13} color="#7C4A30" />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "#111", margin: 0, lineHeight: 1.3 }}>
+            {shopHandle}
+          </p>
+          <p style={{ fontSize: 11, color: "#aaa", margin: 0, lineHeight: 1.3 }}>
+            {timeAgo(post.createdAt)}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Media ── */}
+      {hasMedia ? (
+        <div style={{ width: "100%", aspectRatio: "1/1", flexShrink: 0, background: "#111" }}>
+          <MediaCarousel media={post.media} mode="page" />
+        </div>
+      ) : (
+        <div style={{
+          width: "100%", padding: "32px 24px",
+          background: "#F9F1E7",
+          display: "flex", alignItems: "center", justifyContent: "center", minHeight: 200,
+        }}>
+          <p style={{ fontSize: 16, lineHeight: 1.7, color: "#3D2B1F", fontWeight: 500, textAlign: "center", margin: 0 }}>
+            {post.content}
+          </p>
+        </div>
+      )}
+
+      {/* ── Caption ── */}
+      {post.content && hasMedia && (
+        <div style={{ padding: "14px 16px 8px" }}>
+          <p style={{ fontSize: 14, lineHeight: 1.7, color: "#111", margin: 0 }}>
+            <span style={{ fontWeight: 700, marginRight: 6 }}>{shopHandle}</span>
+            {renderCaption(post.content)}
+          </p>
+        </div>
+      )}
+
+      {/* ── Comment count ── */}
+      {post.commentCount > 0 && (
+        <div style={{ padding: "4px 16px 16px" }}>
+          <p style={{ fontSize: 13, color: "#aaa", margin: 0 }}>
+            Xem tất cả {post.commentCount.toLocaleString("vi-VN")} bình luận
+          </p>
+        </div>
+      )}
+
+      {/* bottom safe area */}
+      <div style={{ height: "env(safe-area-inset-bottom, 16px)", flexShrink: 0 }} />
+    </div>
+  );
+}
+
+// ─── DESKTOP: Modal popup (image left + caption right) ────────────────────────
+
+function DesktopModal({ post, shop, onClose }) {
+  const hasMedia = post.media?.length > 0;
+  const shopHandle = shop?.username || shop?.name?.toLowerCase().replace(/\s+/g, "") || "café";
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
-  }, [current]);
-
-  function goPrev() {
-    setCurrent((c) => (c === 0 ? items.length - 1 : c - 1));
-  }
-  function goNext() {
-    setCurrent((c) => (c === items.length - 1 ? 0 : c + 1));
-  }
-
-  function onTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX;
-  }
-  function onTouchEnd(e) {
-    if (touchStartX.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(delta) > 44) delta < 0 ? goNext() : goPrev();
-    touchStartX.current = null;
-  }
-
-  const item = items[current];
-  const isVideo = item?.type === "video";
+  }, [onClose]);
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex flex-col bg-black/95"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Xem ảnh / video"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog" aria-modal="true" aria-label="Chi tiết bài viết"
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(0,0,0,0.75)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "20px 24px",
+      }}
     >
-      {/* Header */}
-      <div className="flex shrink-0 items-center justify-between px-4 py-3 sm:px-5">
-        <span className="text-sm font-bold text-white/70">
-          {current + 1} / {items.length}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white transition hover:bg-white/20"
-          aria-label="Đóng"
-        >
-          <X size={18} />
-        </button>
-      </div>
+      {/* Panel: auto width = media square + caption */}
+      <div style={{
+        display: "flex", flexDirection: "row",
+        height: "min(90vh, 780px)",
+        maxHeight: "90vh",
+        maxWidth: "min(96vw, 1080px)",
+        background: "#fff",
+        borderRadius: 14,
+        overflow: "hidden",
+        boxShadow: "0 28px 80px rgba(0,0,0,0.35)",
+        animation: "fadeScaleIn .18s ease",
+      }}>
+        <style>{`
+          @keyframes fadeScaleIn {
+            from { opacity: 0; transform: scale(.96); }
+            to   { opacity: 1; transform: scale(1); }
+          }
+        `}</style>
 
-      {/* Main media */}
-      <div
-        className="relative flex flex-1 select-none items-center justify-center overflow-hidden px-2"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-        {isVideo ? (
+        {/* Left: media — aspect-ratio:1/1 fills full height */}
+        <div style={{
+          flexShrink: 0,
+          alignSelf: "stretch",
+          aspectRatio: "1/1",
+          display: "flex", flexDirection: "column",
+          background: "#111",
+          overflow: "hidden",
+        }}>
+          {hasMedia ? (
+            <MediaCarousel media={post.media} mode="modal" />
+          ) : (
+            <div style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "32px 40px", background: "#F9F1E7",
+            }}>
+              <p style={{ fontSize: 16, lineHeight: 1.7, color: "#3D2B1F", fontWeight: 500, textAlign: "center", margin: 0 }}>
+                {post.content}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right: caption — min 300px, max 420px */}
+        <div style={{
+          display: "flex", flexDirection: "column",
+          minWidth: 300, maxWidth: 420, flex: 1,
+          overflow: "hidden",
+        }}>
+          {/* Header */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "13px 16px",
+            borderBottom: "0.5px solid #f0f0f0",
+            flexShrink: 0,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+              background: "#F5EBE0", border: "1px solid #E8D5C4",
+              display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+            }}>
+              {shop?.logoUrl
+                ? <img src={shop.logoUrl} alt={shop.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <Coffee size={14} color="#7C4A30" />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#111", margin: 0, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {shopHandle}
+              </p>
+              <p style={{ fontSize: 11, color: "#aaa", margin: "2px 0 0", lineHeight: 1.3 }}>
+                {timeAgo(post.createdAt)}
+              </p>
+            </div>
+            <button
+              onClick={onClose} aria-label="Đóng"
+              style={{
+                width: 30, height: 30, borderRadius: "50%",
+                background: "none", border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#999", flexShrink: 0,
+              }}
+            >
+              {/* X icon */}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Caption scrollable */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px", overscrollBehavior: "contain" }}>
+            {post.content && hasMedia && (
+              <p style={{ fontSize: 13.5, lineHeight: 1.7, color: "#111", margin: 0 }}>
+                <span style={{ fontWeight: 700, marginRight: 6 }}>{shopHandle}</span>
+                {renderCaption(post.content)}
+              </p>
+            )}
+          </div>
+
+          {/* Comment count */}
+          {post.commentCount > 0 && (
+            <div style={{ padding: "10px 16px", borderTop: "0.5px solid #f0f0f0", flexShrink: 0 }}>
+              <p style={{ fontSize: 12.5, color: "#aaa", margin: 0 }}>
+                Xem tất cả {post.commentCount.toLocaleString("vi-VN")} bình luận
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Grid Cell ────────────────────────────────────────────────────────────────
+
+function GridCell({ post, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const hasMedia = post.media?.length > 0;
+  const isVideo  = hasMedia && post.media[0].type === "video";
+  const isMulti  = hasMedia && post.media.length > 1;
+
+  return (
+    <div
+      role="button" tabIndex={0}
+      aria-label={`${isVideo ? "Video" : "Bài viết"}: ${post.content?.slice(0, 40) ?? ""}`}
+      onClick={() => onClick(post)}
+      onKeyDown={(e) => e.key === "Enter" && onClick(post)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: "relative", cursor: "pointer", overflow: "hidden", background: "#F9F1E7", aspectRatio: "1/1", outline: "none" }}
+    >
+      {hasMedia ? (
+        isVideo ? (
           <video
-            ref={videoRef}
-            key={item.url}
-            src={item.url}
-            controls
-            autoPlay
-            playsInline
-            className="max-h-full max-w-full rounded-lg object-contain"
+            src={post.media[0].url} preload="metadata" muted playsInline
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
           <img
-            key={item.url}
-            src={item.url}
-            alt={`Ảnh ${current + 1}`}
-            className="max-h-full max-w-full rounded-lg object-contain"
-            draggable={false}
+            src={post.media[0].url} alt="" loading="lazy"
+            style={{
+              position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover",
+              transition: "transform .28s ease",
+              transform: hovered ? "scale(1.05)" : "scale(1)",
+            }}
           />
-        )}
+        )
+      ) : (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 10, background: "#F9F1E7" }}>
+          <p style={{ fontSize: 9.5, lineHeight: 1.5, color: "#5A3A28", textAlign: "center", display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {post.content}
+          </p>
+        </div>
+      )}
 
-        {/* Nav buttons — chỉ hiện khi nhiều hơn 1 item */}
-        {items.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={goPrev}
-              className="absolute left-3 grid h-10 w-10 place-items-center rounded-xl bg-black/50 text-white transition hover:bg-black/70"
-              aria-label="Trước"
-            >
-              <ChevronLeft size={22} />
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              className="absolute right-3 grid h-10 w-10 place-items-center rounded-xl bg-black/50 text-white transition hover:bg-black/70"
-              aria-label="Sau"
-            >
-              <ChevronRight size={22} />
-            </button>
-          </>
-        )}
+      {/* Badges */}
+      {isVideo && (
+        <div style={{ position: "absolute", top: 5, right: 5, filter: "drop-shadow(0 1px 2px rgba(0,0,0,.5))" }}>
+          <Play size={13} fill="white" strokeWidth={0} color="white" />
+        </div>
+      )}
+      {isMulti && !isVideo && (
+        <div style={{ position: "absolute", top: 5, right: 5, filter: "drop-shadow(0 1px 2px rgba(0,0,0,.5))" }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="6" y="6" width="13" height="13" rx="2" stroke="white" strokeWidth="2.2"/>
+            <rect x="3" y="3" width="13" height="13" rx="2" stroke="white" strokeWidth="2.2" fill="none"/>
+          </svg>
+        </div>
+      )}
+
+      {/* Hover overlay (desktop only) */}
+      <div style={{
+        position: "absolute", inset: 0, background: "rgba(25,12,4,0.46)",
+        opacity: hovered ? 1 : 0, transition: "opacity .2s",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#fff", fontSize: 12, fontWeight: 600 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          {(post.likeCount ?? 0).toLocaleString("vi-VN")}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#fff", fontSize: 12, fontWeight: 600 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          {(post.commentCount ?? 0).toLocaleString("vi-VN")}
+        </div>
       </div>
-
-      {/* Dot indicators */}
-      {items.length > 1 && (
-        <div className="flex shrink-0 items-center justify-center gap-1.5 py-4">
-          {items.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setCurrent(i)}
-              aria-label={`Ảnh ${i + 1}`}
-              className={cn(
-                "h-1.5 rounded-full transition-all duration-200",
-                i === current ? "w-5 bg-white" : "w-1.5 bg-white/35 hover:bg-white/60"
-              )}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Thumbnail strip — hiện khi ≥ 3 item */}
-      {items.length >= 3 && (
-        <div className="hop-hide-scroll flex shrink-0 gap-2 overflow-x-auto px-4 pb-4">
-          {items.map((m, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setCurrent(i)}
-              aria-label={`Xem ${m.type === "video" ? "video" : "ảnh"} ${i + 1}`}
-              className={cn(
-                "relative h-14 w-14 shrink-0 overflow-hidden rounded-lg transition-all",
-                i === current ? "ring-2 ring-white" : "opacity-50 hover:opacity-80"
-              )}
-            >
-              {m.type === "video" ? (
-                <div className="grid h-full w-full place-items-center bg-neutral-800">
-                  <Play size={18} className="text-white" fill="white" />
-                </div>
-              ) : (
-                <img
-                  src={m.url}
-                  alt={`thumb ${i + 1}`}
-                  className="h-full w-full object-cover"
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
-  );
-}
-
-// ─── Media Grid ───────────────────────────────────────────────────────────────
-
-function PostMediaGrid({ media, onOpenLightbox }) {
-  const visible = media.slice(0, 4);
-  const extra = media.length - 4;
-
-  const gridClass =
-    media.length === 1
-      ? "grid-cols-1"
-      : media.length === 2
-      ? "grid-cols-2"
-      : "grid-cols-2";
-
-  return (
-    <div
-      className={cn(
-        "mt-1 grid gap-0.5 overflow-hidden",
-        gridClass,
-        "rounded-b-xl"
-      )}
-    >
-      {visible.map((m, idx) => {
-        const isFirst3 = media.length === 3 && idx === 0;
-        const isLastVisible = idx === 3 && extra > 0;
-
-        const cellClass = cn(
-          "relative cursor-pointer overflow-hidden bg-neutral-100",
-          media.length === 1 && "max-h-[400px]",
-          media.length === 2 && "aspect-square",
-          media.length === 3 && idx === 0 && "col-span-2 aspect-[16/9]",
-          media.length === 3 && idx !== 0 && "aspect-square",
-          media.length >= 4 && "aspect-square",
-          isFirst3 && "col-span-2"
-        );
-
-        return (
-          <div
-            key={idx}
-            className={cellClass}
-            onClick={() => onOpenLightbox(idx)}
-            role="button"
-            tabIndex={0}
-            aria-label={`Xem ${m.type === "video" ? "video" : "ảnh"} ${idx + 1}`}
-            onKeyDown={(e) => e.key === "Enter" && onOpenLightbox(idx)}
-          >
-            {m.type === "video" ? (
-              <>
-                <video
-                  src={m.url}
-                  className="h-full w-full object-cover"
-                  preload="metadata"
-                  muted
-                  playsInline
-                />
-                {/* Play overlay */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition hover:bg-black/30">
-                  <div className="grid h-12 w-12 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm">
-                    <Play size={22} fill="white" className="translate-x-0.5" />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <img
-                  src={m.url}
-                  alt={`Ảnh ${idx + 1}`}
-                  className="h-full w-full object-cover transition duration-500 hover:scale-105"
-                  loading="lazy"
-                />
-                {/* Zoom hint */}
-                {media.length === 1 && (
-                  <div className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-lg bg-black/40 text-white opacity-0 transition hover:opacity-100 group-hover:opacity-100">
-                    <ZoomIn size={15} />
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* +N overlay */}
-            {isLastVisible && (
-              <div className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/55 transition hover:bg-black/65">
-                <span className="text-3xl font-bold text-white">+{extra}</span>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Post Card ────────────────────────────────────────────────────────────────
-
-const COLLAPSE_THRESHOLD = 180; // px — nếu content cao hơn thì thu gọn
-
-function PostCard({ post, shop }) {
-  const [expanded, setExpanded] = useState(false);
-  const [needsCollapse, setNeedsCollapse] = useState(false);
-  const [lightboxStart, setLightboxStart] = useState(null);
-  const contentRef = useRef(null);
-
-  // Đo chiều cao thực của content để quyết định có cần "Xem thêm" không
-  useEffect(() => {
-    if (!contentRef.current) return;
-    if (contentRef.current.scrollHeight > COLLAPSE_THRESHOLD) {
-      setNeedsCollapse(true);
-    }
-  }, [post.content]);
-
-  const openLightbox = useCallback((idx) => setLightboxStart(idx), []);
-  const closeLightbox = useCallback(() => setLightboxStart(null), []);
-
-  return (
-    <>
-      <article className="overflow-hidden rounded-2xl border border-[#EEE3D8] bg-white shadow-sm transition-shadow hover:shadow-md">
-
-        {/* ── Header ── */}
-        <div className="flex items-center gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border border-neutral-100 bg-[#F8F2EA]">
-            {shop?.logoUrl ? (
-              <img
-                src={shop.logoUrl}
-                alt={shop.name || "Logo"}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <Coffee size={20} className="text-[#6B4B3E]" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-[15px] font-bold text-[#2F221C]">
-              {shop?.name || "Tin tức mới"}
-            </p>
-            <time
-              dateTime={post.createdAt}
-              className="text-[11px] font-medium text-[#9B7A68]"
-            >
-              {formatDate(post.createdAt)}
-            </time>
-          </div>
-        </div>
-
-        {/* ── Content text ── */}
-        {post.content && (
-          <div className="px-4 pt-3 sm:px-5">
-            {/* Vùng thu gọn / mở rộng */}
-            <div
-              className={cn(
-                "relative overflow-hidden text-[15px] leading-relaxed text-[#2F221C]",
-                needsCollapse && !expanded && "max-h-[180px]"
-              )}
-            >
-              <p
-                ref={contentRef}
-                className="whitespace-pre-wrap break-words"
-              >
-                {post.content}
-              </p>
-
-              {/* Gradient fade khi thu gọn */}
-              {needsCollapse && !expanded && (
-                <div className="absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-t from-white to-transparent" />
-              )}
-            </div>
-
-            {/* Nút Xem thêm / Thu gọn */}
-            {needsCollapse && (
-              <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="mt-1 flex items-center gap-1 text-sm font-bold text-[#4E8791] transition hover:text-[#2F221C]"
-              >
-                {expanded ? (
-                  <>
-                    Thu gọn <ChevronUp size={15} />
-                  </>
-                ) : (
-                  <>
-                    Xem thêm <ChevronDown size={15} />
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── Media grid ── */}
-        {post.media && post.media.length > 0 && (
-          <div className={cn(post.content ? "mt-3" : "mt-4")}>
-            <PostMediaGrid media={post.media} onOpenLightbox={openLightbox} />
-          </div>
-        )}
-
-        {/* Padding cuối nếu không có media */}
-        {(!post.media || post.media.length === 0) && (
-          <div className="pb-4" />
-        )}
-      </article>
-
-      {/* Lightbox */}
-      {lightboxStart !== null && (
-        <MediaLightbox
-          items={post.media}
-          startIndex={lightboxStart}
-          onClose={closeLightbox}
-        />
-      )}
-    </>
   );
 }
 
 // ─── BlogSection ──────────────────────────────────────────────────────────────
 
 export default function BlogSection({ shop }) {
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts]     = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activePost, setActive] = useState(null);
+  const vpWidth = useViewportWidth();
+  const isMobile = vpWidth < 640;
 
   useEffect(() => {
     if (!shop?.id) return;
@@ -424,48 +481,50 @@ export default function BlogSection({ shop }) {
     });
   }, [shop?.id]);
 
+  const openPost  = useCallback((post) => setActive(post), []);
+  const closePost = useCallback(() => setActive(null), []);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 size={30} className="animate-spin text-[#7CAEB8]" />
+      <div style={{ display: "flex", minHeight: "40vh", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 size={24} className="animate-spin" style={{ color: "#ccc" }} />
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 24px", textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", marginBottom: 20, background: "#F9F1E7", border: "1.5px dashed #D4A882", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <LayoutGrid size={24} color="#C48B5F" />
+        </div>
+        <p style={{ fontSize: 14, fontWeight: 600, color: "#444", margin: 0 }}>Chưa có bài đăng nào</p>
+        <p style={{ fontSize: 12.5, color: "#aaa", marginTop: 6, lineHeight: 1.6, maxWidth: 220 }}>
+          Quán sẽ sớm chia sẻ những hình ảnh và cập nhật mới nhất!
+        </p>
       </div>
     );
   }
 
   return (
-    <section id="blog" className="mx-auto max-w-2xl px-4 py-8 sm:px-5 lg:max-w-3xl lg:py-10">
-
-      {/* Heading */}
-      <div className="mb-7 text-center">
-        <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.18em] text-[#7CAEB8]">
-          Tin Tức
-        </p>
-        <h2 className="text-2xl font-bold tracking-tight text-[#2F221C] sm:text-3xl">
-          Bản tin của quán
-        </h2>
+    <>
+      {/* 3-column grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 2 }}
+        role="list" aria-label="Bài đăng của quán">
+        {posts.map((post) => (
+          <div key={post.id} role="listitem">
+            <GridCell post={post} onClick={openPost} />
+          </div>
+        ))}
       </div>
 
-      {/* Empty state */}
-      {posts.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-[#EEE3D8] bg-white p-10 text-center shadow-sm">
-          <div className="mb-4 grid h-16 w-16 place-items-center rounded-full bg-[#F8F2EA]">
-            <Newspaper size={30} className="text-[#6B4B3E]" />
-          </div>
-          <h3 className="text-base font-bold text-[#2F221C]">
-            Chưa có bản tin nào
-          </h3>
-          <p className="mt-1.5 text-sm leading-6 text-[#73584D]">
-            Quán sẽ sớm cập nhật những thông tin mới nhất đến bạn!
-          </p>
-        </div>
-      ) : (
-        /* Feed: 1 cột như Facebook — tập trung đọc, không bị chia cột */
-        <div className="flex flex-col gap-4 sm:gap-5">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} shop={shop} />
-          ))}
-        </div>
+      {/* Mobile → full page; Desktop → modal popup */}
+      {activePost && isMobile && (
+        <MobilePostPage post={activePost} shop={shop} onBack={closePost} />
       )}
-    </section>
+      {activePost && !isMobile && (
+        <DesktopModal post={activePost} shop={shop} onClose={closePost} />
+      )}
+    </>
   );
 }

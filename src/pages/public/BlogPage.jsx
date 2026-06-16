@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Newspaper } from "lucide-react";
+import { ChevronLeft, Grid3x3, MapPin, Clock } from "lucide-react";
 
 import { useShopMenu } from "../../hooks/useShopMenu";
 
@@ -9,9 +9,183 @@ import ShopFooter from "../../components/public/menu/ShopFooter";
 import BlogSection from "../../components/public/menu/BlogSection";
 import { LoadingScreen, StateBox } from "../../components/public/menu/MenuStates";
 
+// ─── Helper: format giờ mở cửa ───────────────────────────────────────────────
+function formatHours(shop) {
+  if (shop?.openTime && shop?.closeTime) {
+    return `${shop.openTime} – ${shop.closeTime}`;
+  }
+  return null;
+}
+
+// ─── Profile Header (Instagram-style) ────────────────────────────────────────
+function ProfileHeader({ shop, postCount }) {
+  const hours   = formatHours(shop);
+  const address = shop?.address;
+
+  return (
+    <div style={{
+      width: "100%",
+      maxWidth: 935,
+      margin: "0 auto",
+      padding: "28px 16px 0",
+    }}>
+
+      {/* ── Back link ── */}
+      <Link
+        to={`/${shop.slug}`}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          fontSize: 12, fontWeight: 600, color: "#888",
+          textDecoration: "none", marginBottom: 20,
+          letterSpacing: "0.04em",
+          transition: "color .15s",
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = "#2F221C"}
+        onMouseLeave={e => e.currentTarget.style.color = "#888"}
+      >
+        <ChevronLeft size={14} strokeWidth={2.5} />
+        Xem thực đơn
+      </Link>
+
+      {/* ── Profile row ── */}
+      <div style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 24,
+        marginBottom: 20,
+      }}>
+
+        {/* Avatar */}
+        <div style={{
+          flexShrink: 0,
+          width: 86,
+          height: 86,
+          borderRadius: "50%",
+          background: "#F5EBE0",
+          border: "2.5px solid #E8D5C4",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          overflow: "hidden",
+          // Ring gradient like Instagram
+          boxShadow: shop?.logoUrl ? "0 0 0 2px #fff, 0 0 0 4px #E8D5C4" : "none",
+        }}>
+          {shop?.logoUrl ? (
+            <img
+              src={shop.logoUrl}
+              alt={shop.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            <span style={{ fontSize: 32 }}>☕</span>
+          )}
+        </div>
+
+        {/* Info column */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+          {/* Shop name + back to menu */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+            <h1 style={{
+              fontSize: 20, fontWeight: 400, color: "#111",
+              margin: 0, lineHeight: 1.2,
+              letterSpacing: "-0.01em",
+            }}>
+              {shop?.username || shop?.name?.toLowerCase().replace(/\s+/g, "") || shop?.name || "hopcafe"}
+            </h1>
+
+            <Link
+              to={`/${shop.slug}`}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                fontSize: 12, fontWeight: 600, color: "#2F221C",
+                textDecoration: "none",
+                background: "#F5EBE0",
+                border: "1px solid #E8D5C4",
+                borderRadius: 8,
+                padding: "5px 12px",
+                transition: "background .15s",
+                whiteSpace: "nowrap",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#EDD9C8"}
+              onMouseLeave={e => e.currentTarget.style.background = "#F5EBE0"}
+            >
+              Xem thực đơn
+            </Link>
+          </div>
+
+          {/* Stats row */}
+          <div style={{
+            display: "flex",
+            gap: 28,
+            marginBottom: 14,
+          }}>
+            <div style={{ textAlign: "center" }}>
+              <span style={{ fontSize: 16, fontWeight: 600, color: "#111", display: "block", lineHeight: 1.2 }}>
+                {postCount ?? 0}
+              </span>
+              <span style={{ fontSize: 13, color: "#555", lineHeight: 1.3 }}>bài viết</span>
+            </div>
+          </div>
+
+          {/* Bio / shop name full */}
+          <div style={{ lineHeight: 1 }}>
+            <p style={{ fontSize: 13.5, fontWeight: 700, color: "#111", margin: "0 0 3px" }}>
+              {shop?.name || "Hớp Café"}
+            </p>
+            {shop?.description && (
+              <p style={{ fontSize: 13.5, color: "#333", margin: "0 0 5px", lineHeight: 1.5, maxWidth: 360 }}>
+                {shop.description}
+              </p>
+            )}
+            {address && (
+              <p style={{ fontSize: 13, color: "#555", margin: "0 0 2px", display: "flex", alignItems: "center", gap: 4 }}>
+                <MapPin size={12} color="#888" />
+                {address}
+              </p>
+            )}
+            {hours && (
+              <p style={{ fontSize: 13, color: "#555", margin: 0, display: "flex", alignItems: "center", gap: 4 }}>
+                <Clock size={12} color="#888" />
+                {hours}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Divider + tab bar ── */}
+      <div style={{ borderTop: "0.5px solid #dbdbdb", marginTop: 4 }}>
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+        }}>
+          {/* Active tab */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "12px 0",
+            borderTop: "1.5px solid #111",
+            marginTop: -1,
+            fontSize: 11,
+            fontWeight: 600,
+            color: "#111",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            cursor: "default",
+            userSelect: "none",
+          }}>
+            <Grid3x3 size={13} strokeWidth={2} />
+            Bài viết
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── BlogPage ──────────────────────────────────────────────────────────────────
 export default function BlogPage() {
   const { shopSlug } = useParams();
-
   const { shop, posts = [], loading, error } = useShopMenu(shopSlug);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -19,7 +193,7 @@ export default function BlogPage() {
 
   if (error) {
     return (
-      <main className="grid min-h-screen place-items-center bg-white px-4">
+      <main style={{ display: "grid", minHeight: "100svh", placeItems: "center", background: "#fff", padding: "0 16px" }}>
         <StateBox title="Có lỗi xảy ra" description={error} />
       </main>
     );
@@ -27,7 +201,7 @@ export default function BlogPage() {
 
   if (!shop) {
     return (
-      <main className="grid min-h-screen place-items-center bg-white px-4">
+      <main style={{ display: "grid", minHeight: "100svh", placeItems: "center", background: "#fff", padding: "0 16px" }}>
         <StateBox
           title="Không tìm thấy cửa hàng"
           description="Cửa hàng chưa được public hoặc đường dẫn không đúng."
@@ -36,45 +210,23 @@ export default function BlogPage() {
     );
   }
 
+  const activePosts = posts.filter((p) => p.isActive !== false);
+
   return (
-    <main className="min-h-screen bg-white text-[#2F221C] selection:bg-[#7CAEB8]/30">
-      <MenuHeader
-        shop={shop}
-        mobileOpen={mobileOpen}
-        setMobileOpen={setMobileOpen}
-      />
+    <main style={{ minHeight: "100svh", background: "#fff", color: "#2F221C" }}>
 
-      <section className="relative overflow-hidden border-b border-neutral-200 bg-white pt-16 lg:pt-20">
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(124,174,184,0.18),transparent_38%),radial-gradient(circle_at_top_right,rgba(201,165,141,0.22),transparent_34%)]" />
+      {/* Site-wide nav header */}
+      <MenuHeader shop={shop} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
-          <Link
-            to={`/${shop.slug}`}
-            className="inline-flex items-center gap-1.5 rounded-[8px] border border-neutral-200 bg-white px-4 py-2.5 text-xs font-black uppercase tracking-[0.1em] text-[#6B4B3E] shadow-sm transition hover:bg-neutral-50 hover:text-[#2F221C]"
-          >
-            <ChevronLeft size={16} />
-            Xem thực đơn
-          </Link>
+      {/* Profile header — full width, centered content */}
+      <div style={{ paddingTop: 56 /* offset MenuHeader height */ }}>
+        <ProfileHeader shop={shop} postCount={activePosts.length} />
+      </div>
 
-          <div className="mt-6 max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#7CAEB8]/25 bg-[#7CAEB8]/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-[#5C929B]">
-              <Newspaper size={14} />
-              Tin mới từ quán
-            </div>
-
-            <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight text-[#2F221C] sm:text-5xl lg:text-6xl">
-              Blog & cập nhật mới nhất
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-sm font-medium leading-7 text-[#73584D] sm:text-base sm:leading-8">
-              Theo dõi các bài đăng mới, món mới, ưu đãi và hoạt động mới nhất
-              từ {shop.name || "quán"}.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <BlogSection posts={posts} shop={shop} />
+      {/* Grid — tightly bounded to 935px like Instagram */}
+      <div style={{ maxWidth: 935, margin: "0 auto" }}>
+        <BlogSection posts={activePosts} shop={shop} />
+      </div>
 
       <ShopFooter shop={shop} />
     </main>
