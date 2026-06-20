@@ -1,6 +1,9 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
 import {
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   LayoutDashboard,
   Loader2,
@@ -16,6 +19,9 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { DEFAULT_SHOP_ID, getShopById } from "../services/shopService";
 
+const EXPANDED_SIDEBAR_WIDTH = 320;
+const COLLAPSED_SIDEBAR_WIDTH = 88;
+
 const navItems = [
   {
     to: "/admin/dashboard",
@@ -30,6 +36,13 @@ const navItems = [
     shortLabel: "Menu",
     description: "Danh mục và món",
     icon: Soup,
+  },
+  {
+    to: "/admin/reservations",
+    label: "Đặt lịch / đặt bàn",
+    shortLabel: "Đặt lịch",
+    description: "Khách đặt bàn",
+    icon: CalendarCheck,
   },
   {
     to: "/admin/promotions",
@@ -54,12 +67,48 @@ const navItems = [
   },
 ];
 
+function getInitialSidebarCollapsed() {
+  if (typeof window === "undefined") return false;
+
+  return window.localStorage.getItem("admin-sidebar-collapsed") === "true";
+}
+
 function getPageTitle(pathname) {
   if (pathname.startsWith("/admin/menu")) return "Quản lý menu";
+
+  if (pathname.startsWith("/admin/reservations")) {
+    return "Quản lý đặt lịch / đặt bàn";
+  }
+
   if (pathname.startsWith("/admin/promotions")) return "Quản lý khuyến mãi";
   if (pathname.startsWith("/admin/posts")) return "Bản tin quán";
   if (pathname.startsWith("/admin/settings")) return "Cài đặt quán";
+
   return "Tổng quan";
+}
+
+function getPageDescription(pathname) {
+  if (pathname.startsWith("/admin/menu")) {
+    return "Quản lý danh mục, sản phẩm, giá bán và trạng thái món.";
+  }
+
+  if (pathname.startsWith("/admin/reservations")) {
+    return "Theo dõi khách đặt bàn, xác nhận lịch và liên hệ khách hàng.";
+  }
+
+  if (pathname.startsWith("/admin/promotions")) {
+    return "Quản lý banner, khuyến mãi, ảnh và video hiển thị ngoài menu.";
+  }
+
+  if (pathname.startsWith("/admin/posts")) {
+    return "Quản lý bài đăng, hình ảnh và cập nhật mới nhất của quán.";
+  }
+
+  if (pathname.startsWith("/admin/settings")) {
+    return "Cập nhật thông tin cửa hàng, logo, ảnh bìa và liên kết.";
+  }
+
+  return "Quản trị menu online, khuyến mãi, đặt lịch và thông tin cửa hàng.";
 }
 
 function cleanSlug(slug = "") {
@@ -69,6 +118,7 @@ function cleanSlug(slug = "") {
 function getPublicPath(shop) {
   const slug = cleanSlug(shop?.slug || "");
   if (!slug) return "";
+
   return `/${slug}`;
 }
 
@@ -77,10 +127,14 @@ export default function AdminLayout() {
   const { user, authLoading, logout } = useAuth();
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    getInitialSidebarCollapsed
+  );
   const [shop, setShop] = useState(null);
   const [shopLoading, setShopLoading] = useState(true);
 
   const pageTitle = getPageTitle(location.pathname);
+  const pageDescription = getPageDescription(location.pathname);
   const publicPath = useMemo(() => getPublicPath(shop), [shop]);
 
   useEffect(() => {
@@ -88,23 +142,44 @@ export default function AdminLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
+    window.localStorage.setItem(
+      "admin-sidebar-collapsed",
+      sidebarCollapsed ? "true" : "false"
+    );
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
     if (!user) return;
+
+    let mounted = true;
 
     async function loadShop() {
       try {
         setShopLoading(true);
 
         const shopData = await getShopById(DEFAULT_SHOP_ID);
-        setShop(shopData);
+
+        if (mounted) {
+          setShop(shopData);
+        }
       } catch (err) {
         console.error("Không thể tải thông tin quán:", err);
-        setShop(null);
+
+        if (mounted) {
+          setShop(null);
+        }
       } finally {
-        setShopLoading(false);
+        if (mounted) {
+          setShopLoading(false);
+        }
       }
     }
 
     loadShop();
+
+    return () => {
+      mounted = false;
+    };
   }, [user]);
 
   if (authLoading) {
@@ -136,6 +211,8 @@ export default function AdminLayout() {
         shop={shop}
         publicPath={publicPath}
         shopLoading={shopLoading}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
         onLogout={handleLogout}
       />
 
@@ -150,7 +227,12 @@ export default function AdminLayout() {
         />
       )}
 
-      <div className="min-h-[100dvh] lg:pl-[280px]">
+      <div
+        className={[
+          "min-h-[100dvh] transition-[padding] duration-300 ease-out",
+          sidebarCollapsed ? "lg:pl-[88px]" : "lg:pl-[320px]",
+        ].join(" ")}
+      >
         <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur-xl">
           <div className="flex h-16 items-center justify-between gap-3 px-3 sm:px-6 lg:h-20 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
@@ -163,13 +245,29 @@ export default function AdminLayout() {
                 <Menu size={20} />
               </button>
 
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((value) => !value)}
+                className="hidden h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-neutral-200 bg-white text-neutral-800 shadow-sm transition hover:bg-neutral-50 lg:grid"
+                aria-label={
+                  sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"
+                }
+                title={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+              >
+                {sidebarCollapsed ? (
+                  <ChevronRight size={19} />
+                ) : (
+                  <ChevronLeft size={19} />
+                )}
+              </button>
+
               <div className="min-w-0">
                 <p className="truncate text-lg font-black tracking-tight text-neutral-950 sm:text-xl lg:text-2xl">
                   {pageTitle}
                 </p>
 
                 <p className="mt-0.5 hidden truncate text-sm font-medium text-neutral-500 sm:block">
-                  Quản trị menu online, khuyến mãi và thông tin cửa hàng
+                  {pageDescription}
                 </p>
               </div>
             </div>
@@ -183,16 +281,16 @@ export default function AdminLayout() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="hidden items-center gap-2 rounded-[8px] bg-neutral-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-neutral-800 sm:inline-flex"
+                className="hidden items-center gap-2 rounded-[8px] bg-neutral-950 px-4 py-2.5 text-sm font-black !text-white transition hover:bg-neutral-800 sm:inline-flex"
               >
-                <LogOut size={16} />
-                Thoát
+                <LogOut size={16} className="text-white" />
+                <span className="text-white">Thoát</span>
               </button>
             </div>
           </div>
         </header>
 
-        <main className="mx-auto min-h-[calc(100dvh-64px)] max-w-7xl px-3 pb-[calc(86px+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pt-5 lg:min-h-[calc(100dvh-80px)] lg:px-8 lg:pb-8 lg:pt-8">
+        <main className="mx-auto min-h-[calc(100dvh-64px)] max-w-7xl px-3 pb-[calc(92px+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pt-5 lg:min-h-[calc(100dvh-80px)] lg:px-8 lg:pb-8 lg:pt-8">
           <Outlet />
         </main>
       </div>
@@ -202,28 +300,86 @@ export default function AdminLayout() {
   );
 }
 
-function DesktopSidebar({ user, shop, publicPath, shopLoading, onLogout }) {
+function DesktopSidebar({
+  user,
+  shop,
+  publicPath,
+  shopLoading,
+  collapsed,
+  onToggleCollapsed,
+  onLogout,
+}) {
   return (
-    <aside className="fixed left-0 top-0 hidden h-screen w-[280px] border-r border-neutral-200 bg-white p-4 lg:flex lg:flex-col">
-      <BrandBox user={user} shop={shop} />
-
-      <nav className="mt-5 space-y-2">
-        {navItems.map((item) => (
-          <SidebarLink key={item.to} item={item} />
-        ))}
-      </nav>
-
-      <div className="mt-auto space-y-3">
-        <PublicMenuButton publicPath={publicPath} shopLoading={shopLoading} />
+    <aside
+      className={[
+        "fixed left-0 top-0 hidden h-[100dvh] border-r border-neutral-200 bg-white transition-[width] duration-300 ease-out lg:flex lg:flex-col",
+        collapsed ? "w-[88px]" : "w-[320px]",
+      ].join(" ")}
+      style={{
+        width: collapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,
+      }}
+    >
+      <div
+        className={[
+          "flex min-h-0 flex-1 flex-col",
+          collapsed ? "p-3" : "p-4",
+        ].join(" ")}
+      >
+        <BrandBox user={user} shop={shop} collapsed={collapsed} />
 
         <button
           type="button"
-          onClick={onLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-neutral-950 px-4 py-3 text-sm font-black text-white transition hover:bg-neutral-800"
+          onClick={onToggleCollapsed}
+          className={[
+            "mt-3 hidden items-center justify-center gap-2 rounded-[12px] border border-neutral-200 bg-white text-sm font-black text-neutral-800 shadow-sm transition hover:bg-neutral-50 lg:flex",
+            collapsed ? "h-11 w-full px-0" : "h-11 px-4",
+          ].join(" ")}
+          title={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
         >
-          <LogOut size={17} />
-          Đăng xuất
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+
+          {!collapsed && <span>Thu gọn menu</span>}
         </button>
+
+        <nav
+          className={[
+            "mt-4 min-h-0 flex-1 overflow-y-auto",
+            collapsed ? "space-y-2 pr-0" : "space-y-1.5 pr-1",
+          ].join(" ")}
+        >
+          {navItems.map((item) => (
+            <SidebarLink key={item.to} item={item} collapsed={collapsed} />
+          ))}
+        </nav>
+
+        <div
+          className={[
+            "mt-4 space-y-3 border-t border-neutral-200 pt-4",
+            collapsed && "space-y-2",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <PublicMenuButton
+            publicPath={publicPath}
+            shopLoading={shopLoading}
+            collapsed={collapsed}
+          />
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className={[
+              "flex w-full items-center justify-center gap-2 rounded-[12px] bg-neutral-950 text-sm font-black !text-white transition hover:bg-neutral-800",
+              collapsed ? "h-12 px-0" : "px-4 py-3",
+            ].join(" ")}
+            title="Đăng xuất"
+          >
+            <LogOut size={17} className="text-white" />
+
+            {!collapsed && <span className="text-white">Đăng xuất</span>}
+          </button>
+        </div>
       </div>
     </aside>
   );
@@ -276,10 +432,10 @@ function MobileSidebar({
           <button
             type="button"
             onClick={onLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-neutral-950 px-4 py-3 text-sm font-black text-white"
+            className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-neutral-950 px-4 py-3 text-sm font-black !text-white"
           >
-            <LogOut size={17} />
-            Đăng xuất
+            <LogOut size={17} className="text-white" />
+            <span className="text-white">Đăng xuất</span>
           </button>
         </div>
       </aside>
@@ -336,16 +492,21 @@ function HeaderPublicButton({ publicPath, shopLoading }) {
   );
 }
 
-function PublicMenuButton({ publicPath, shopLoading }) {
+function PublicMenuButton({ publicPath, shopLoading, collapsed = false }) {
   if (shopLoading) {
     return (
       <button
         type="button"
         disabled
-        className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-neutral-200 bg-white px-4 py-3 text-sm font-black text-neutral-400"
+        className={[
+          "flex w-full items-center justify-center gap-2 rounded-[12px] border border-neutral-200 bg-white text-sm font-black text-neutral-400",
+          collapsed ? "h-12 px-0" : "px-4 py-3",
+        ].join(" ")}
+        title="Đang tải link"
       >
         <Loader2 size={16} className="animate-spin" />
-        Đang tải link
+
+        {!collapsed && <span>Đang tải link</span>}
       </button>
     );
   }
@@ -354,10 +515,15 @@ function PublicMenuButton({ publicPath, shopLoading }) {
     return (
       <Link
         to="/admin/settings"
-        className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100"
+        className={[
+          "flex w-full items-center justify-center gap-2 rounded-[12px] border border-amber-200 bg-amber-50 text-sm font-black text-amber-700 transition hover:bg-amber-100",
+          collapsed ? "h-12 px-0" : "px-4 py-3",
+        ].join(" ")}
+        title="Tạo slug menu"
       >
         <Settings size={16} />
-        Tạo slug menu
+
+        {!collapsed && <span>Tạo slug menu</span>}
       </Link>
     );
   }
@@ -367,18 +533,23 @@ function PublicMenuButton({ publicPath, shopLoading }) {
       to={publicPath}
       target="_blank"
       rel="noreferrer"
-      className="flex w-full items-center justify-center gap-2 rounded-[10px] border border-neutral-200 bg-white px-4 py-3 text-sm font-black text-neutral-800 transition hover:bg-neutral-50"
+      className={[
+        "flex w-full items-center justify-center gap-2 rounded-[12px] border border-neutral-200 bg-white text-sm font-black text-neutral-800 transition hover:bg-neutral-50",
+        collapsed ? "h-12 px-0" : "px-4 py-3",
+      ].join(" ")}
+      title="Xem menu khách hàng"
     >
       <ExternalLink size={17} />
-      Xem menu khách hàng
+
+      {!collapsed && <span>Xem menu khách hàng</span>}
     </Link>
   );
 }
 
 function MobileBottomNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:hidden">
-      <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 px-1.5 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl lg:hidden">
+      <div className="mx-auto grid max-w-2xl grid-cols-6 gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -388,7 +559,7 @@ function MobileBottomNav() {
               to={item.to}
               className={({ isActive }) =>
                 [
-                  "group flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-[10px] px-1 text-[10px] font-black transition",
+                  "group flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-[10px] px-0.5 text-[9px] font-black transition",
                   isActive
                     ? "bg-neutral-100 text-neutral-950"
                     : "bg-transparent text-neutral-500 hover:bg-neutral-50 hover:text-neutral-950",
@@ -399,13 +570,13 @@ function MobileBottomNav() {
                 <>
                   <span
                     className={[
-                      "grid h-8 w-8 place-items-center rounded-[8px] transition",
+                      "grid h-7 w-7 place-items-center rounded-[8px] transition",
                       isActive
                         ? "bg-neutral-950 text-white shadow-sm"
                         : "bg-transparent text-neutral-500 group-hover:bg-white group-hover:text-neutral-950",
                     ].join(" ")}
                   >
-                    <Icon size={18} />
+                    <Icon size={17} />
                   </span>
 
                   <span
@@ -426,40 +597,38 @@ function MobileBottomNav() {
   );
 }
 
-function BrandBox({ user, shop, compact = false }) {
-  return (
-    <div className="overflow-hidden rounded-[14px] bg-neutral-950 p-4 text-white">
-      <div className="flex items-center gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-white text-neutral-950">
-          {shop?.logoUrl ? (
-            <img
-              src={shop.logoUrl}
-              alt={shop.name || "Logo"}
-              className="h-full w-full object-contain p-1"
-            />
-          ) : (
-            <Soup size={23} />
-          )}
-        </div>
+function BrandBox({ user, shop, compact = false, collapsed = false }) {
+  if (collapsed) {
+    return (
+      <div className="grid place-items-center rounded-[16px] bg-neutral-950 p-2.5 text-white shadow-sm">
+        <ShopLogo shop={shop} small />
+      </div>
+    );
+  }
 
-        <div className="min-w-0">
-          <p className="truncate text-lg font-black leading-none">
+  return (
+    <div className="rounded-[18px] bg-neutral-950 p-4 text-white shadow-sm">
+      <div className="flex min-w-0 items-center gap-3">
+        <ShopLogo shop={shop} />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xl font-black leading-tight text-white">
             {shop?.name || "F&B Menu"}
           </p>
 
-          <p className="mt-1 truncate text-xs font-semibold text-white/50">
+          <p className="mt-1 truncate text-sm font-bold text-white/55">
             {shop?.slug ? `/${shop.slug}` : "Admin workspace"}
           </p>
         </div>
       </div>
 
       {!compact && (
-        <div className="mt-4 rounded-[10px] bg-white/10 p-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">
+        <div className="mt-4 rounded-[12px] bg-white/10 p-3">
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/45">
             Tài khoản
           </p>
 
-          <p className="mt-1 truncate text-sm font-bold text-white/85">
+          <p className="mt-1 truncate text-sm font-bold leading-5 text-white/90">
             {user.email}
           </p>
         </div>
@@ -468,19 +637,47 @@ function BrandBox({ user, shop, compact = false }) {
   );
 }
 
-function SidebarLink({ item, onClick }) {
+function ShopLogo({ shop, small = false }) {
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div
+      className={[
+        "grid shrink-0 place-items-center overflow-hidden rounded-[14px] bg-white text-neutral-950 ring-1 ring-white/20",
+        small ? "h-12 w-12" : "h-14 w-14",
+      ].join(" ")}
+    >
+      {shop?.logoUrl && !imageError ? (
+        <img
+          src={shop.logoUrl}
+          alt={shop.name || "Logo"}
+          onError={() => setImageError(true)}
+          className="h-full w-full object-contain p-1.5"
+        />
+      ) : (
+        <Soup size={small ? 23 : 26} />
+      )}
+    </div>
+  );
+}
+
+function SidebarLink({ item, onClick, collapsed = false }) {
   const Icon = item.icon;
 
   return (
     <NavLink
       to={item.to}
       onClick={onClick}
+      title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         [
-          "group flex items-center gap-3 rounded-[12px] px-3 py-3 transition",
+          "group flex items-center transition",
+          collapsed
+            ? "min-h-[54px] justify-center rounded-[14px] px-0 py-0"
+            : "min-h-[72px] gap-3 rounded-[16px] px-3 py-3",
           isActive
             ? "bg-neutral-950 text-white shadow-sm"
-            : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950",
+            : "bg-white text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950",
         ].join(" ")
       }
     >
@@ -488,27 +685,37 @@ function SidebarLink({ item, onClick }) {
         <>
           <div
             className={[
-              "grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+              "grid shrink-0 place-items-center rounded-[14px] transition",
+              collapsed ? "h-11 w-11" : "h-12 w-12",
               isActive
                 ? "bg-white/15 text-white"
                 : "bg-neutral-100 text-neutral-500 group-hover:bg-white group-hover:text-neutral-950",
             ].join(" ")}
           >
-            <Icon size={19} />
+            <Icon size={collapsed ? 20 : 21} />
           </div>
 
-          <div className="min-w-0">
-            <p className="text-sm font-black">{item.label}</p>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p
+                className={[
+                  "truncate text-base font-black leading-5",
+                  isActive ? "text-white" : "text-neutral-950",
+                ].join(" ")}
+              >
+                {item.label}
+              </p>
 
-            <p
-              className={[
-                "mt-0.5 truncate text-xs font-medium",
-                isActive ? "text-white/55" : "text-neutral-400",
-              ].join(" ")}
-            >
-              {item.description}
-            </p>
-          </div>
+              <p
+                className={[
+                  "mt-1 truncate text-sm font-semibold leading-5",
+                  isActive ? "text-white/60" : "text-neutral-400",
+                ].join(" ")}
+              >
+                {item.description}
+              </p>
+            </div>
+          )}
         </>
       )}
     </NavLink>

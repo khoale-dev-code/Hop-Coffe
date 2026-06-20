@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { CalendarCheck } from "lucide-react";
 
 import { useShopMenu } from "../../hooks/useShopMenu";
 
@@ -12,6 +13,7 @@ import ProductGrid from "../../components/public/menu/ProductGrid";
 import PromotionModal from "../../components/public/menu/PromotionModal";
 import PromotionStrip from "../../components/public/menu/PromotionStrip";
 import QuickActions from "../../components/public/menu/QuickActions";
+import ReservationModal from "../../components/public/menu/ReservationModal";
 import ShopFooter from "../../components/public/menu/ShopFooter";
 import {
   LoadingScreen,
@@ -40,6 +42,7 @@ export default function MenuPage() {
   const [sortMode, setSortMode] = useState("default");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
+  const [reservationOpen, setReservationOpen] = useState(false);
 
   const visibleCategories = useMemo(() => {
     return categories.filter((category) => category.isActive !== false);
@@ -119,11 +122,17 @@ export default function MenuPage() {
         shop={shop}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
+        onOpenReservation={() => setReservationOpen(true)}
       />
 
       <HeroBanner shop={shop} totalItems={items.length} />
 
       <QuickActions shop={shop} />
+
+      <ReservationCallout
+        shop={shop}
+        onOpen={() => setReservationOpen(true)}
+      />
 
       <PromotionStrip
         promotions={promotions}
@@ -199,6 +208,48 @@ export default function MenuPage() {
         promotion={selectedPromotion}
         onClose={() => setSelectedPromotion(null)}
       />
+
+      <ReservationModal
+        open={reservationOpen}
+        shop={shop}
+        onClose={() => setReservationOpen(false)}
+      />
     </main>
+  );
+}
+
+function ReservationCallout({ shop, onOpen }) {
+  return (
+    <section className="bg-white">
+      <div className="mx-auto max-w-7xl px-3 py-3 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-[14px] border border-[#EEE3D8] bg-[#F8F2EA] shadow-sm">
+          <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 lg:p-5">
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#7CAEB8] sm:text-xs">
+                Đặt lịch trước
+              </p>
+
+              <h2 className="mt-1 text-base font-black leading-6 text-[#2F221C] sm:text-xl">
+                Đặt bàn / đặt lịch tại {shop?.name || "quán"}
+              </h2>
+
+              <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-[#73584D]">
+                Chọn số lượng người, ngày giờ và để lại số điện thoại để quán
+                liên hệ xác nhận.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpen}
+              className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-[10px] bg-[#2F221C] px-5 py-3 text-sm font-black !text-white transition hover:bg-[#6B4B3E] active:scale-[0.98] sm:w-auto"
+            >
+              <CalendarCheck size={17} className="text-white" />
+              <span className="text-white">Đặt lịch ngay</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

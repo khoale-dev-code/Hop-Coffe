@@ -4,13 +4,15 @@ import PublicLayout from "../layouts/PublicLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import MenuPage from "../pages/public/MenuPage";
+import BlogPage from "../pages/public/BlogPage";
+
 import LoginPage from "../pages/admin/LoginPage";
 import DashboardPage from "../pages/admin/DashboardPage";
 import MenuItemsPage from "../pages/admin/MenuItemsPage";
-import SettingsPage from "../pages/admin/SettingsPage";
 import PromotionsPage from "../pages/admin/PromotionsPage";
 import PostsPage from "../pages/admin/PostsPage";
-import BlogPage from "../pages/public/BlogPage";
+import ReservationsPage from "../pages/admin/ReservationsPage";
+import SettingsPage from "../pages/admin/SettingsPage";
 
 export const router = createBrowserRouter([
   {
@@ -41,9 +43,13 @@ export const router = createBrowserRouter([
         path: "promotions",
         element: <PromotionsPage />,
       },
-      { 
-        path: "posts", 
-        element: <PostsPage /> 
+      {
+        path: "posts",
+        element: <PostsPage />,
+      },
+      {
+        path: "reservations",
+        element: <ReservationsPage />,
       },
       {
         path: "settings",
@@ -57,11 +63,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <MenuPage />, // Truy cập: tenquan.com/slug
+        element: <MenuPage />,
       },
       {
         path: "blog",
-        element: <BlogPage />, // Truy cập: tenquan.com/slug/blog
+        element: <BlogPage />,
       },
     ],
   },
