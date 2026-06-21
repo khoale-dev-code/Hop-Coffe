@@ -1,6 +1,6 @@
-﻿import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import { CalendarCheck } from "lucide-react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
+import { CalendarCheck, Tag } from "lucide-react";
 
 import { useShopMenu } from "../../hooks/useShopMenu";
 
@@ -25,8 +25,19 @@ import {
   sortMenuItems,
 } from "../../components/public/menu/publicMenuUtils";
 
+function getHashId(hash = "") {
+  if (!hash) return "";
+
+  try {
+    return decodeURIComponent(hash.replace("#", "").trim());
+  } catch {
+    return hash.replace("#", "").trim();
+  }
+}
+
 export default function MenuPage() {
   const { shopSlug } = useParams();
+  const location = useLocation();
 
   const {
     shop,
@@ -43,6 +54,27 @@ export default function MenuPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
   const [reservationOpen, setReservationOpen] = useState(false);
+
+  useEffect(() => {
+    if (loading || !shop) return;
+
+    const hashId = getHashId(location.hash || window.location.hash);
+
+    if (!hashId) return;
+
+    const timer = window.setTimeout(() => {
+      const target = document.getElementById(hashId);
+
+      if (target) {
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 180);
+
+    return () => window.clearTimeout(timer);
+  }, [location.hash, loading, shop, promotions.length, items.length]);
 
   const visibleCategories = useMemo(() => {
     return categories.filter((category) => category.isActive !== false);
@@ -134,7 +166,7 @@ export default function MenuPage() {
         onOpen={() => setReservationOpen(true)}
       />
 
-      <PromotionStrip
+      <PromotionsSection
         promotions={promotions}
         onOpenPromotion={setSelectedPromotion}
       />
@@ -202,7 +234,9 @@ export default function MenuPage() {
         </div>
       </section>
 
-      <ShopFooter shop={shop} />
+      <section id="about" className="scroll-mt-24">
+        <ShopFooter shop={shop} />
+      </section>
 
       <PromotionModal
         promotion={selectedPromotion}
@@ -215,6 +249,43 @@ export default function MenuPage() {
         onClose={() => setReservationOpen(false)}
       />
     </main>
+  );
+}
+
+function PromotionsSection({ promotions = [], onOpenPromotion }) {
+  return (
+    <section id="promotions" className="scroll-mt-24 bg-white">
+      {promotions.length > 0 ? (
+        <PromotionStrip
+          promotions={promotions}
+          onOpenPromotion={onOpenPromotion}
+        />
+      ) : (
+        <div className="mx-auto max-w-7xl px-3 py-3 sm:px-6 lg:px-8">
+          <div className="rounded-[14px] border border-[#EEE3D8] bg-[#F8F2EA] p-4 shadow-sm sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-white text-[#7CAEB8] ring-1 ring-[#EEE3D8]">
+                <Tag size={18} />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#7CAEB8]">
+                  Khuyến mãi
+                </p>
+
+                <h2 className="mt-1 text-base font-black text-[#2F221C] sm:text-xl">
+                  Hiện chưa có khuyến mãi
+                </h2>
+
+                <p className="mt-1 text-sm font-medium leading-6 text-[#73584D]">
+                  Các ưu đãi mới của quán sẽ được hiển thị tại đây.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
